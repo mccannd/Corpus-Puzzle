@@ -4,6 +4,7 @@ import * as DAT from 'dat-gui';
 import Icosphere from './geometry/Icosphere';
 import Square from './geometry/Square';
 import Mesh from './geometry/Mesh';
+import HackingPuzzle from './game/HackingPuzzle'
 import OpenGLRenderer from './rendering/gl/OpenGLRenderer';
 import Camera from './Camera';
 import {setGL} from './globals';
@@ -111,6 +112,8 @@ function main() {
     ]);
 
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo"]);
+
+  let hp: HackingPuzzle = new HackingPuzzle();
 
   // This function will be called every frame
   let frame = 0;
