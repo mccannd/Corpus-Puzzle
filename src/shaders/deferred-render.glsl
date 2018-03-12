@@ -125,7 +125,7 @@ void main() {
 	vec3 col = gb2.xyz;
 	vec3 color = (dot(vec3(1.0), abs(P)) < EPS) ? vec3(0): PBRColor(rough, metal, col, N, P);
 
-	//color = mix(color, vec3(0), 1.0 - occ);
+	color = mix(color, vec3(0), 1.0 - occ);
 	
 	out_Col = vec4(color, 1.0);
 }

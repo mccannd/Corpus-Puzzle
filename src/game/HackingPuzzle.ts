@@ -1,3 +1,5 @@
+import {mat4, vec3} from 'gl-matrix';
+
 
 const NUM_LINKS: number = 12;
 const NUM_HEX: number = 7;
@@ -87,6 +89,8 @@ class Hex {
 	linkValues: boolean[];
 	linkTruth: boolean[];
 
+	
+
 	constructor(id: number, linkIdx: number[], linkVals: boolean[], linkTruth: boolean[]) {
 		this.hexID = id;
 		this.linkIdx = linkIdx;
@@ -138,10 +142,50 @@ class HackingPuzzle {
 	links: boolean[];
 	// 7 hexes in puzzle, hex[6] is in the center
 	hexes: Hex[];
+	translations: mat4[];
 
 	constructor() {		
 		this.generatePuzzle();
+
+		this.translations = [];
+
+		let radius = 2.0;
+		for (var i = 0; i < 6; i++) {
+			var theta = -i * 60.0 / 180.0 * Math.PI;
+			var px = Math.cos(theta) * radius;
+			var py = Math.sin(theta) * radius;
+			var pz = 0;
+			var mi = mat4.create();
+			mat4.fromTranslation(mi, vec3.fromValues(px, py, pz));
+			this.translations.push(mi);
+		}
+		var m7 = mat4.create();
+		mat4.identity(m7);
+
+		this.translations.push(m7);
 	}
+
+
+	drawMatrices(): mat4[] {
+		var transforms: mat4[] = [];
+
+		for (var i = 0; i < 7; i++) {
+			var rotation = mat4.create();
+			rotation = mat4.fromZRotation(rotation, -this.hexes[i].cwOffset * 60.0 / 180.0 * Math.PI);
+			mat4.multiply(rotation, this.translations[i], rotation);
+			transforms.push(rotation);
+		}
+
+		return transforms;
+	}
+
+
+	drawImageTypes(): number[] {
+		var types: number[] = [];
+		for (var i = 0; i < 7; i++) types.push(this.hexes[i].getImageType());
+		return types;
+	}
+
 
 	generatePuzzle() {
 		this.hexes = [];

@@ -4,6 +4,7 @@ import Camera from '../../Camera';
 import {gl} from '../../globals';
 import ShaderProgram, {Shader} from './ShaderProgram';
 import Square from '../../geometry/Square';
+import HackingPuzzle from '../../game/HackingPuzzle'
 
 let screenQuad : Square;
 //const ext = gl.getExtension("EXT_color_buffer_float");
@@ -146,14 +147,16 @@ class OpenGLRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.enable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
 
     let model = mat4.create();
+    mat4.fromTranslation(model, vec3.fromValues(0, 0, -3));
     let viewProj = mat4.create();
     let view = camera.viewMatrix;
     let proj = camera.projectionMatrix;
     let color = vec4.fromValues(0.5, 0.5, 0.5, 1);
 
-    mat4.identity(model);
+    //mat4.identity(model);
     mat4.multiply(viewProj, camera.projectionMatrix, camera.viewMatrix);
     gbProg.setModelMatrix(model);
     gbProg.setViewProjMatrix(viewProj);
@@ -189,6 +192,28 @@ class OpenGLRenderer {
     }
 
     this.deferredShader.draw(screenQuad);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+
+  renderPuzzle(hp: HackingPuzzle, camera: Camera, prog: ShaderProgram) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.postBuffer);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    let t: mat4[] = hp.drawMatrices();
+    let frames: number[] = hp.drawImageTypes();
+
+    let view = camera.viewMatrix;
+    let proj = camera.projectionMatrix;
+    prog.setViewMatrix(view);
+    prog.setProjMatrix(proj);
+
+    for (var i = 0; i < 7; i++) {
+      prog.setModelMatrix(t[i]);
+      prog.setIntUniform('u_spriteFrame', frames[i]);
+      prog.draw(screenQuad);
+    }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 

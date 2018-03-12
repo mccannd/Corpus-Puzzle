@@ -26,6 +26,7 @@ let mesh0: Mesh;
 
 let tex0: Texture;
 let tex1: Texture;
+let puzzleSpriteSheet: Texture;
 
 var timer = {
   deltaTime: 0.0,
@@ -37,7 +38,7 @@ var timer = {
     timer.deltaTime = t - timer.currentTime;
     timer.currentTime = t;
   },
-}
+};
 
 
 function loadOBJText() {
@@ -59,9 +60,12 @@ function loadScene() {
   mesh0 = new Mesh(obj0, vec3.fromValues(0, 0, 0));
   mesh0.create();
 
-  tex0 = new Texture('../resources/textures/sgrassCol.png')
-  tex1 = new Texture('../resources/textures/sgrassPBR.png')
+  tex0 = new Texture('../resources/textures/sgrassCol.png');
+  tex1 = new Texture('../resources/textures/sgrassPBR.png');
+  puzzleSpriteSheet = new Texture('../resources/textures/puzzleSprites.png');
+
 }
+
 
 function main() {
   // Initial display for framerate
@@ -111,7 +115,14 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/standard-frag.glsl')),
     ]);
 
+  const puzzleShader = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/sprite-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
+    ]);
+
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo"]);
+  puzzleShader.setupTexUnits(["tex_Color"]);
+  puzzleShader.setupIntUnits(["u_spriteFrame"]);
 
   let hp: HackingPuzzle = new HackingPuzzle();
 
@@ -127,10 +138,16 @@ function main() {
     standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
     standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
 
+    
+
     renderer.clear();
     renderer.clearGB();
     renderer.renderToGBuffer(camera, standardDeferred, [mesh0]);
     renderer.renderFromGBuffer(camera);
+
+    puzzleShader.bindTexToUnit("tex_Color", puzzleSpriteSheet, 0);
+    renderer.renderPuzzle(hp, camera, puzzleShader);
+
     renderer.renderPostProcess();
     stats.end();
 

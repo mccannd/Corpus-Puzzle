@@ -36,6 +36,9 @@ class ShaderProgram {
   unifTime: WebGLUniformLocation;
 
   unifTexUnits: Map<string, WebGLUniformLocation>;
+  unifMatrices: Map<string, WebGLUniformLocation>;
+  unifInts: Map<string, WebGLUniformLocation>;
+  unifFloats: Map<string, WebGLUniformLocation>;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -61,6 +64,9 @@ class ShaderProgram {
     this.unifTime = gl.getUniformLocation(this.prog, "u_Time")
 
     this.unifTexUnits = new Map<string, WebGLUniformLocation>();
+    this.unifMatrices = new Map<string, WebGLUniformLocation>();
+    this.unifInts = new Map<string, WebGLUniformLocation>();
+    this.unifFloats = new Map<string, WebGLUniformLocation>();
   }
 
   setupTexUnits(handleNames: Array<string>) {
@@ -83,6 +89,48 @@ class ShaderProgram {
       gl.uniform1i(location, unit);
     } else {
       console.log("Texture with handle name: \'" + handleName + "\' was not found");
+    }
+  }
+
+  setupIntUnits(handleNames: Array<string>) {
+    for (let handle of handleNames) {
+      var location = gl.getUniformLocation(this.prog, handle);
+      if (location !== -1) {
+        this.unifInts.set(handle, location);
+      } else {
+        console.log("Could not find handle for int named: \'" + handle + "\'!");
+      }
+    }
+  }
+
+  setIntUniform(handleName: string, value: number) {
+    this.use();
+    var location = this.unifInts.get(handleName);
+    if (location !== undefined) {
+      gl.uniform1i(location, value);
+    } else {
+      console.log("Int with handle name: \'" + handleName + "\' was not found");
+    }
+  }
+
+  setupFloatUnits(handleNames: Array<string>) {
+    for (let handle of handleNames) {
+      var location = gl.getUniformLocation(this.prog, handle);
+      if (location !== -1) {
+        this.unifFloats.set(handle, location);
+      } else {
+        console.log("Could not find handle for int named: \'" + handle + "\'!");
+      }
+    }
+  }
+
+  setFloatUniform(handleName: string, value: number) {
+    this.use();
+    var location = this.unifFloats.get(handleName);
+    if (location !== undefined) {
+      gl.uniform1f(location, value);
+    } else {
+      console.log("Float with handle name: \'" + handleName + "\' was not found");
     }
   }
 
