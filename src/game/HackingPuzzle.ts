@@ -79,18 +79,16 @@ function matchPattern(hexBools: boolean[]): [number, number] {
 		}
 	}
 
-
 	return [-1, -1];
 }
+
 
 class Hex {
 	hexID: number;
 	cwOffset: number;
 	imageType: number;
 	linkIdx: number[];
-	linkValues: boolean[];
-
-	
+	linkValues: boolean[];	
 
 	constructor(id: number, linkIdx: number[], linkVals: boolean[]) {
 		this.hexID = id;
@@ -121,7 +119,6 @@ class Hex {
 		this.cwOffset = this.cwOffset + 1;
 		if (this.cwOffset >= HEX_SIZE) this.cwOffset -= HEX_SIZE;
 
-		//console.log(this.linkValues);
 		return this.relevantLinks();
 	}
 
@@ -147,21 +144,23 @@ const linkToHex: number[][] = [[0, 5], [0, 6], [0, 1], [1, 6], [1, 2], [2, 6], [
 		
 
 class HackingPuzzle {
-	// there are 12 possible connection points for the puzzle between hexes
-	links: boolean[];
+
 	// 7 hexes in puzzle, hex[6] is in the center
 	hexes: Hex[];
 	translations: mat4[];
+	// there are 12 possible connection points for the puzzle between hexes
+	// links are pairs between hexes, and multiple solutions can be possible
 	linkStatus: boolean[][];
+	// index of hex highlighted by mouse
 	selected: number;
 
-	constructor() {	
 
+	constructor() {	
 		this.generatePuzzle();
 		this.selected = -1;
 		this.translations = [];
 
-		let radius = 2.0;
+		let radius = 1.9;
 		for (var i = 0; i < 6; i++) {
 			var theta = -i * 60.0 / 180.0 * Math.PI;
 			var px = Math.cos(theta) * radius;
@@ -177,7 +176,7 @@ class HackingPuzzle {
 		this.translations.push(m7);
 	}
 
-
+	// world space matrices for each hex
 	drawMatrices(): mat4[] {
 		var transforms: mat4[] = [];
 
@@ -191,7 +190,7 @@ class HackingPuzzle {
 		return transforms;
 	}
 
-
+	// determines the sprite on the sheet to draw for each hex
 	drawImageTypes(): number[] {
 		var types: number[] = [];
 		for (var i = 0; i < 7; i++) types.push(this.hexes[i].getImageType());
@@ -199,7 +198,6 @@ class HackingPuzzle {
 	}
 
 	updateLinks(udl: IdxLink[], hexIdx: number) {
-		//console.log(udl);
 		for (var i = 0; i < udl.length; i++) {
 			var idx: number = udl[i][0];
 			var val: boolean = udl[i][1];
@@ -213,11 +211,12 @@ class HackingPuzzle {
 
 	generatePuzzle() {
 		this.hexes = [];
-		this.links = [];
+		var links = [];
 		this.linkStatus = [];
+
 		// randomly generate the links
 		for (var i = 0; i < NUM_LINKS; i++) {
-			this.links.push(Math.random() < 0.5);
+			links.push(Math.random() < 0.5);
 		}
 
 		// pre-process: ensure that every hex has at least one link
@@ -238,17 +237,16 @@ class HackingPuzzle {
 		for (var i = 0; i < preIdx.length; i++) {
 			var anyCorrect = false;
 			for (var j = 0; j < preIdx[0].length; j++) {
-				anyCorrect = anyCorrect || this.links[preIdx[i][j]];
+				anyCorrect = anyCorrect || links[preIdx[i][j]];
 			}
 			if (!anyCorrect) {
 				// randomly toggle a link in this hex on
 				var pick = Math.floor(Math.random() * preIdx[i].length);
-				this.links[preIdx[i][pick]] = true;
+				links[preIdx[i][pick]] = true;
 			}
-			console.log(i);
 		}
 
-		console.log(preIdx);
+
 		// pre-process: ensure single connected component. if can't reach hex, connect it to center
 		var seen: boolean[] = [false, false, false, false, false, false, false];
 		var dfsStack: number[] = [6];
@@ -260,7 +258,7 @@ class HackingPuzzle {
 				for (var x = 0; x < preIdx[current].length; x++) {
 					var idx = preIdx[current][x];
 					//console.log('borf');
-					if (this.links[idx]) {
+					if (links[idx]) {
 						var link = linkToHex[idx];
 						var next = (link[0] != current) ? link[0] : link[1];
 						console.log("pushed " + next + " from " + current);
@@ -272,17 +270,16 @@ class HackingPuzzle {
 
 		for (var i = 0; i < 6; i++) {
 			if (!seen[i]) {
-				console.log("not seen: " + i);
-				this.links[preIdx[i][1]] = true;
+				//console.log("not seen: " + i);
+				links[preIdx[i][1]] = true;
 			}
 		}
 
 		// create baseline link status
-		for (var i = 0; i < this.links.length; i++) {
-			var l = this.links[i]
+		for (var i = 0; i < links.length; i++) {
+			var l = links[i]
 			this.linkStatus.push([l, l]);
 		}
-
 
 		// create each hex from the links
 		var firstIdx = 2;
@@ -305,7 +302,7 @@ class HackingPuzzle {
 					idxVals.push(false);
 				} 
 				else {
-					idxVals.push(this.links[hexIdx[j]]);
+					idxVals.push(links[hexIdx[j]]);
 				} 
 			}
 
@@ -320,16 +317,13 @@ class HackingPuzzle {
 		var hexIdx = [1, 3, 5, 7, 9, 11];
 		var idxVals: boolean[] = [];
 		for (var j = 0; j < HEX_SIZE; j++) {
-			idxVals.push(this.links[hexIdx[j]]);		
+			idxVals.push(links[hexIdx[j]]);		
 		}
 		this.hexes.push(new Hex(6, hexIdx, idxVals));
 		var numTwist = Math.floor(Math.random() * HEX_SIZE);
 		for (var j = 0; j < numTwist; j++) this.updateLinks(this.hexes[6].rotateCW(), 6);
 
 		console.log("generated");
-		//console.log(this.hexes[0].verify());
-		console.log(this.verify());
-		console.log(this.linkStatus);
 	}
 
 	verify(): boolean {
@@ -342,6 +336,7 @@ class HackingPuzzle {
 
 
 	// ray plane intersect and try to find closest hex
+	// currently assumed puzzle is on xy plane through origin
 	highlight(ro: vec3, rd: vec3) {
 		var n = vec3.fromValues(0, 0, 1);
 		if (vec3.dot(ro, n) < 0.0001) {
@@ -360,17 +355,15 @@ class HackingPuzzle {
 			for (var i = 0; i < this.translations.length; i++) {
 				var tra = vec3.create();
 				mat4.getTranslation(tra, this.translations[i]);
-				//console.log(i);
 				var dx = res[0] - tra[0];
 				var dy = res[1] - tra[1];
 				var dist = Math.sqrt(dx * dx + dy * dy);
-				//console.log(dist);
 				if (dist < bestDist) {
 					bestIdx = i;
 					bestDist = dist;
 				}
-
 			}
+
 			if (bestDist > 1.0) bestIdx = -1;
 			this.selected = bestIdx;
 			console.log(this.selected);
