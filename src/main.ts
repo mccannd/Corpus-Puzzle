@@ -171,7 +171,22 @@ function main() {
     var ray = camera.raycast(u, v);
     hp.highlight(ray[0], ray[1]);
     //console.log(u + ', ' + v);
-  });
+  }, false);
+
+  window.addEventListener('click', function(evt) {
+    hp.leftClick();
+    if (hp.verify()) console.log('shit dude');
+    return false;
+    //console.log(u + ', ' + v);
+  }, false);
+
+
+  window.addEventListener('contextmenu', function(evt) {
+    hp.rightClick();
+    if (hp.verify()) console.log('shit dude');
+    return false;
+    //console.log(u + ', ' + v);
+  }, false);
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);

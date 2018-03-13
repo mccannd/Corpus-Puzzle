@@ -379,6 +379,16 @@ class HackingPuzzle {
 
 	}
 
+	leftClick() {
+		if (this.selected === -1) return;
+		this.updateLinks(this.hexes[this.selected].rotateCW(), this.selected);
+	}
+
+	rightClick() {
+		if (this.selected === -1) return;
+		this.updateLinks(this.hexes[this.selected].rotateCCW(), this.selected);
+	}
+
 }
 
 export default HackingPuzzle;
