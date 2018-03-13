@@ -163,6 +163,16 @@ function main() {
     camera.updateProjectionMatrix();
   }, false);
 
+  window.addEventListener('mousemove', function(evt) {
+    var u = evt.x / window.innerWidth;
+    var v = 1.0 - evt.y / window.innerHeight;
+    u = 2.0 * u - 1.0;
+    v = 2.0 * v - 1.0;
+    var ray = camera.raycast(u, v);
+    hp.highlight(ray[0], ray[1]);
+    //console.log(u + ', ' + v);
+  });
+
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();

@@ -153,11 +153,12 @@ class HackingPuzzle {
 	hexes: Hex[];
 	translations: mat4[];
 	linkStatus: boolean[][];
+	selected: number;
 
 	constructor() {	
 
 		this.generatePuzzle();
-
+		this.selected = -1;
 		this.translations = [];
 
 		let radius = 2.0;
@@ -337,6 +338,45 @@ class HackingPuzzle {
 			correct = correct && (this.linkStatus[i][0] == this.linkStatus[i][1]);
 		}
 		return correct;
+	}
+
+
+	// ray plane intersect and try to find closest hex
+	highlight(ro: vec3, rd: vec3) {
+		var n = vec3.fromValues(0, 0, 1);
+		if (vec3.dot(ro, n) < 0.0001) {
+			this.selected = -1;
+		} else {
+			var r0 = vec3.create();
+			vec3.sub(r0, vec3.fromValues(0, 0, 0), ro);
+			var t = vec3.dot(r0, n) / vec3.dot(rd, n);
+			vec3.scale(rd, rd, t);
+			var res = vec3.create();
+			vec3.add(res, ro, rd);
+			
+			var bestDist = Number.MAX_VALUE;
+			var bestIdx = -1;
+
+			for (var i = 0; i < this.translations.length; i++) {
+				var tra = vec3.create();
+				mat4.getTranslation(tra, this.translations[i]);
+				//console.log(i);
+				var dx = res[0] - tra[0];
+				var dy = res[1] - tra[1];
+				var dist = Math.sqrt(dx * dx + dy * dy);
+				//console.log(dist);
+				if (dist < bestDist) {
+					bestIdx = i;
+					bestDist = dist;
+				}
+
+			}
+			if (bestDist > 1.0) bestIdx = -1;
+			this.selected = bestIdx;
+			console.log(this.selected);
+
+		}
+
 	}
 
 }
