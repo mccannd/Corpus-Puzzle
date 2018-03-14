@@ -147,7 +147,7 @@ class OpenGLRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.enable(gl.DEPTH_TEST);
-    gl.disable(gl.BLEND);
+    gl.disable(gl.BLEND); // no alpha
 
     let model = mat4.create();
     mat4.fromTranslation(model, vec3.fromValues(0, 0, -3));
@@ -201,7 +201,7 @@ class OpenGLRenderer {
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    let t: mat4[] = hp.drawMatrices();
+    let t: mat4[] = hp.drawMatrices(this.currentTime);
     let frames: number[] = hp.drawImageTypes();
 
     let view = camera.viewMatrix;

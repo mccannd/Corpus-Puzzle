@@ -1,10 +1,9 @@
 import {mat4, vec3} from 'gl-matrix';
-
+import EaseScalar from './Animators'
 
 const NUM_LINKS: number = 12;
 const NUM_HEX: number = 7;
 const HEX_SIZE: number = 6;
-
 
 // image pattern matching constants
 const PATTERNS_2: string[] = ['++', '+-+', '+--+'];
@@ -15,6 +14,8 @@ const OFFSET_3: number = 4;
 const OFFSET_4: number = 7;
 const OFFSET_5: number = 10;
 const OFFSET_6: number = 11;
+
+const TURN_DURATION: number = 0.25;
 
 type IdxLink = [number, boolean];
 
@@ -75,10 +76,11 @@ function matchPattern(hexBools: boolean[]): [number, number] {
 			return [OFFSET_6, 0];
 		}
 		default: {
+
+			console.log("found degenerate number of links: " + count);
 			return [-1, -1];
 		}
 	}
-
 	return [-1, -1];
 }
 
@@ -88,7 +90,10 @@ class Hex {
 	cwOffset: number;
 	imageType: number;
 	linkIdx: number[];
-	linkValues: boolean[];	
+	linkValues: boolean[];
+	currentRotation: EaseScalar;	
+
+	offsetRot(): number { return -this.cwOffset / 3.0 * Math.PI; }
 
 	constructor(id: number, linkIdx: number[], linkVals: boolean[]) {
 		this.hexID = id;
@@ -98,6 +103,8 @@ class Hex {
 		// console.log(patternInfo);
 		this.imageType = patternInfo[0];
 		this.cwOffset = patternInfo[1];
+		let r = this.offsetRot();
+		this.currentRotation = new EaseScalar(r, r, 0.0, 0.0);
 	}
 
 	relevantLinks(): IdxLink[] {
@@ -108,8 +115,20 @@ class Hex {
 		return links;
 	}
 
-	rotateCW(): IdxLink[] {
+	initRotation() { let r = this.offsetRot(); this.currentRotation = new EaseScalar(r, r, 0.0, 0.0); }
 
+	
+	startAnimateCW(currentTime: number) {
+		let r = this.offsetRot();
+		this.currentRotation = new EaseScalar(r, r - Math.PI / 3.0, currentTime, currentTime + TURN_DURATION);
+	}
+
+	startAnimateCCW(currentTime: number) {
+		let r = this.offsetRot();
+		this.currentRotation = new EaseScalar(r, r + Math.PI / 3.0, currentTime, currentTime + TURN_DURATION);
+	}
+
+	rotateCW(): IdxLink[] {
 		var old5 = this.linkValues[5];
 		for (var i = 5; i > 0; i--) {
 			this.linkValues[i] = this.linkValues[i - 1];
@@ -138,6 +157,7 @@ class Hex {
 
 	getImageType() : number { return this.imageType; }
 	getOffset() : number { return this.cwOffset; }
+	getRotation(currentTime: number) : number { return this.currentRotation.getSmooth(currentTime); }
 }
 
 const linkToHex: number[][] = [[0, 5], [0, 6], [0, 1], [1, 6], [1, 2], [2, 6], [2, 3], [3, 6], [3, 4], [4, 6], [4, 5], [5, 6]];
@@ -177,12 +197,13 @@ class HackingPuzzle {
 	}
 
 	// world space matrices for each hex
-	drawMatrices(): mat4[] {
+	drawMatrices(currentTime: number): mat4[] {
 		var transforms: mat4[] = [];
 
 		for (var i = 0; i < 7; i++) {
 			var rotation = mat4.create();
-			rotation = mat4.fromZRotation(rotation, -this.hexes[i].cwOffset * 60.0 / 180.0 * Math.PI);
+			//rotation = mat4.fromZRotation(rotation, -this.hexes[i].cwOffset * 60.0 / 180.0 * Math.PI);
+			rotation = mat4.fromZRotation(rotation, this.hexes[i].getRotation(currentTime));
 			mat4.multiply(rotation, this.translations[i], rotation);
 			transforms.push(rotation);
 		}
@@ -220,9 +241,9 @@ class HackingPuzzle {
 		}
 
 		// pre-process: ensure that every hex has at least one link
-		var preIdx: number[][] = [];
-		var baseIDX = 0;
-		for (var i = 0; i < NUM_HEX - 1; i++) {
+		let preIdx: number[][] = [];
+		let baseIDX = 0;
+		for (let i = 0; i < NUM_HEX - 1; i++) {
 			preIdx.push([]);
 			preIdx[i].push(baseIDX);
 			preIdx[i].push(++baseIDX);
@@ -231,10 +252,10 @@ class HackingPuzzle {
 
 		// center hex is special case
 		preIdx.push([]);
-		for (var i = 0; i < NUM_HEX; i++) preIdx[6].push(1 + 2 * i);
+		for (let i = 0; i < NUM_HEX; i++) preIdx[6].push(1 + 2 * i);
 
 		console.log(preIdx);
-		for (var i = 0; i < preIdx.length; i++) {
+		for (let i = 0; i < preIdx.length; i++) {
 			var anyCorrect = false;
 			for (var j = 0; j < preIdx[0].length; j++) {
 				anyCorrect = anyCorrect || links[preIdx[i][j]];
@@ -254,10 +275,10 @@ class HackingPuzzle {
 			var current = dfsStack.pop();
 			if (!seen[current]) {
 				seen[current] = true;
-				//console.log('ghgirhg');
-				for (var x = 0; x < preIdx[current].length; x++) {
+
+				for (let x = 0; x < preIdx[current].length; x++) {
 					var idx = preIdx[current][x];
-					//console.log('borf');
+
 					if (links[idx]) {
 						var link = linkToHex[idx];
 						var next = (link[0] != current) ? link[0] : link[1];
@@ -268,7 +289,7 @@ class HackingPuzzle {
 			}			
 		}
 
-		for (var i = 0; i < 6; i++) {
+		for (let i = 0; i < 6; i++) {
 			if (!seen[i]) {
 				//console.log("not seen: " + i);
 				links[preIdx[i][1]] = true;
@@ -311,6 +332,7 @@ class HackingPuzzle {
 			// shuffle
 			var numTwist = Math.floor(Math.random() * HEX_SIZE);
 			for (var j = 0; j < numTwist; j++) this.updateLinks(this.hexes[i].rotateCW(), i);
+			this.hexes[i].initRotation();
 		}
 
 		// final hex:
@@ -322,7 +344,7 @@ class HackingPuzzle {
 		this.hexes.push(new Hex(6, hexIdx, idxVals));
 		var numTwist = Math.floor(Math.random() * HEX_SIZE);
 		for (var j = 0; j < numTwist; j++) this.updateLinks(this.hexes[6].rotateCW(), 6);
-
+		this.hexes[6].initRotation();
 		console.log("generated");
 	}
 
@@ -372,13 +394,15 @@ class HackingPuzzle {
 
 	}
 
-	leftClick() {
+	leftClick(currentTime: number) {
 		if (this.selected === -1) return;
+		this.hexes[this.selected].startAnimateCW(currentTime);
 		this.updateLinks(this.hexes[this.selected].rotateCW(), this.selected);
 	}
 
-	rightClick() {
+	rightClick(currentTime: number) {
 		if (this.selected === -1) return;
+		this.hexes[this.selected].startAnimateCCW(currentTime);
 		this.updateLinks(this.hexes[this.selected].rotateCCW(), this.selected);
 	}
 

@@ -174,7 +174,7 @@ function main() {
   }, false);
 
   window.addEventListener('click', function(evt) {
-    hp.leftClick();
+    hp.leftClick(timer.currentTime);
     if (hp.verify()) console.log('shit dude');
     return false;
     //console.log(u + ', ' + v);
@@ -182,7 +182,7 @@ function main() {
 
 
   window.addEventListener('contextmenu', function(evt) {
-    hp.rightClick();
+    hp.rightClick(timer.currentTime);
     if (hp.verify()) console.log('shit dude');
     return false;
     //console.log(u + ', ' + v);
