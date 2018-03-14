@@ -44,6 +44,13 @@ class EaseScalar {
 		return mix(this.v0, this.v1, Math.pow(t, power));
 	}
 
+	getCustom(currentTime: number) {
+		var t = normalize(currentTime, this.t0, this.t1);
+		t = Math.pow(t, 2.2);
+		t = t * t * (3.0 - 2.0 * t);
+		return mix(this.v0, this.v1, t);
+	}
+
 }
 
 export default EaseScalar;

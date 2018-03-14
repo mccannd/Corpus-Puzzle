@@ -62,19 +62,19 @@ function loadScene() {
 
   tex0 = new Texture('../resources/textures/sgrassCol.png');
   tex1 = new Texture('../resources/textures/sgrassPBR.png');
-  puzzleSpriteSheet = new Texture('../resources/textures/puzzleSprites.png');
+  puzzleSpriteSheet = new Texture('../resources/textures/puzzleSprites_channels.png');
 
 }
 
 
 function main() {
   // Initial display for framerate
-  const stats = Stats();
-  stats.setMode(0);
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.left = '0px';
-  stats.domElement.style.top = '0px';
-  document.body.appendChild(stats.domElement);
+  // const stats = Stats();
+  // stats.setMode(0);
+  // stats.domElement.style.position = 'absolute';
+  // stats.domElement.style.left = '0px';
+  // stats.domElement.style.top = '0px';
+  //document.body.appendChild(stats.domElement);
 
   // Add controls to the gui
   const gui = new DAT.GUI();
@@ -123,6 +123,7 @@ function main() {
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo"]);
   puzzleShader.setupTexUnits(["tex_Color"]);
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
+  puzzleShader.setupFloatUnits(["u_highlight"]);
 
   let hp: HackingPuzzle = new HackingPuzzle();
 
@@ -130,7 +131,7 @@ function main() {
   let frame = 0;
   function tick() {
     camera.update();
-    stats.begin();
+    //stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     timer.updateTime();
     renderer.updateTime(timer.deltaTime, timer.currentTime);
@@ -149,7 +150,7 @@ function main() {
     renderer.renderPuzzle(hp, camera, puzzleShader);
 
     renderer.renderPostProcess();
-    stats.end();
+    //stats.end();
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     frame++;

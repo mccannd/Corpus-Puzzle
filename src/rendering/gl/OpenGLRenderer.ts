@@ -203,14 +203,21 @@ class OpenGLRenderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     let t: mat4[] = hp.drawMatrices(this.currentTime);
     let frames: number[] = hp.drawImageTypes();
+    let highlightIdx: number = hp.drawHighlightIndex();
 
     let view = camera.viewMatrix;
     let proj = camera.projectionMatrix;
+
     prog.setViewMatrix(view);
     prog.setProjMatrix(proj);
 
     for (var i = 0; i < 7; i++) {
       prog.setModelMatrix(t[i]);
+      if (i === highlightIdx) {
+        prog.setFloatUniform('u_highlight', 1.0);
+      } else {
+        prog.setFloatUniform('u_highlight', 0.0);
+      }
       prog.setIntUniform('u_spriteFrame', frames[i]);
       prog.draw(screenQuad);
     }

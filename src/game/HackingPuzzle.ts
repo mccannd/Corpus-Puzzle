@@ -7,13 +7,13 @@ const HEX_SIZE: number = 6;
 
 // image pattern matching constants
 const PATTERNS_2: string[] = ['++', '+-+', '+--+'];
-const PATTERNS_3: string[] = ['+++', '++-+', '++--+'];
+const PATTERNS_3: string[] = ['+++', '++-+', '++--+', '+-+-+'];
 const PATTERNS_4: string[] = ['++++', '+++-+', '++-++'];
 const OFFSET_2: number = 1;
 const OFFSET_3: number = 4;
-const OFFSET_4: number = 7;
-const OFFSET_5: number = 10;
-const OFFSET_6: number = 11;
+const OFFSET_4: number = 8;
+const OFFSET_5: number = 11;
+const OFFSET_6: number = 12;
 
 const TURN_DURATION: number = 0.25;
 
@@ -118,12 +118,12 @@ class Hex {
 	initRotation() { let r = this.offsetRot(); this.currentRotation = new EaseScalar(r, r, 0.0, 0.0); }
 
 	
-	startAnimateCW(currentTime: number) {
+	startAnimateCW(currentTime: number) {	
 		let r = this.offsetRot();
 		this.currentRotation = new EaseScalar(r, r - Math.PI / 3.0, currentTime, currentTime + TURN_DURATION);
 	}
 
-	startAnimateCCW(currentTime: number) {
+	startAnimateCCW(currentTime: number) {	
 		let r = this.offsetRot();
 		this.currentRotation = new EaseScalar(r, r + Math.PI / 3.0, currentTime, currentTime + TURN_DURATION);
 	}
@@ -157,7 +157,7 @@ class Hex {
 
 	getImageType() : number { return this.imageType; }
 	getOffset() : number { return this.cwOffset; }
-	getRotation(currentTime: number) : number { return this.currentRotation.getSmooth(currentTime); }
+	getRotation(currentTime: number) : number { return this.currentRotation.getPower(currentTime, 1.7); }
 }
 
 const linkToHex: number[][] = [[0, 5], [0, 6], [0, 1], [1, 6], [1, 2], [2, 6], [2, 3], [3, 6], [3, 4], [4, 6], [4, 5], [5, 6]];
@@ -202,7 +202,6 @@ class HackingPuzzle {
 
 		for (var i = 0; i < 7; i++) {
 			var rotation = mat4.create();
-			//rotation = mat4.fromZRotation(rotation, -this.hexes[i].cwOffset * 60.0 / 180.0 * Math.PI);
 			rotation = mat4.fromZRotation(rotation, this.hexes[i].getRotation(currentTime));
 			mat4.multiply(rotation, this.translations[i], rotation);
 			transforms.push(rotation);
@@ -218,6 +217,12 @@ class HackingPuzzle {
 		return types;
 	}
 
+
+	drawHighlightIndex(): number {
+		return this.selected;
+	}
+
+	
 	updateLinks(udl: IdxLink[], hexIdx: number) {
 		for (var i = 0; i < udl.length; i++) {
 			var idx: number = udl[i][0];
@@ -291,7 +296,6 @@ class HackingPuzzle {
 
 		for (let i = 0; i < 6; i++) {
 			if (!seen[i]) {
-				//console.log("not seen: " + i);
 				links[preIdx[i][1]] = true;
 			}
 		}
@@ -314,7 +318,6 @@ class HackingPuzzle {
 			hexIdx[(firstIdx + 2) % HEX_SIZE] = baseIDX - 2;
 			firstIdx += 1;
 			baseIDX = (baseIDX + 2);
-			//console.log(hexIdx);
 			// get the correct booleans for each link
 
 			var idxVals: boolean[] = [];
