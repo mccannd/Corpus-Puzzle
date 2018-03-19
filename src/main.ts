@@ -100,16 +100,6 @@ function main() {
   renderer.setClearColor(0, 0, 0, 1);
   gl.enable(gl.DEPTH_TEST);
 
-  const lambert = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, require('./shaders/lambert-vert.glsl')),
-    new Shader(gl.FRAGMENT_SHADER, require('./shaders/lambert-frag.glsl')),
-  ]);
-
-  const screenTest = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, require('./shaders/screenspace-vert.glsl')),
-    new Shader(gl.FRAGMENT_SHADER, require('./shaders/screenspace-frag.glsl')),
-    ]);
-
   const standardDeferred = new ShaderProgram([
     new Shader(gl.VERTEX_SHADER, require('./shaders/standard-vert.glsl')),
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/standard-frag.glsl')),
@@ -139,7 +129,6 @@ function main() {
     standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
     standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
 
-    
 
     renderer.clear();
     renderer.clearGB();
@@ -149,8 +138,8 @@ function main() {
     puzzleShader.bindTexToUnit("tex_Color", puzzleSpriteSheet, 0);
     renderer.renderPuzzle(hp, camera, puzzleShader);
 
-    renderer.renderPostProcess();
-    //stats.end();
+    renderer.renderPostProcessHDR();
+    renderer.renderPostProcessLDR();
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     frame++;

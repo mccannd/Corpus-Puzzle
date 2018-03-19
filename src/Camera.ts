@@ -1,11 +1,11 @@
 import * as CameraControls from '3d-view-controls';
-import {vec3, mat4} from 'gl-matrix';
+import {vec2, vec3, mat4} from 'gl-matrix';
 
 class Camera {
   controls: any;
   projectionMatrix: mat4 = mat4.create();
   viewMatrix: mat4 = mat4.create();
-  fovy: number = 45 * 3.1415962 / 180.0;
+  fovy: number = 45.0 * 3.1415962 / 180.0;
   aspectRatio: number = 1;
   near: number = 0.1;
   far: number = 1000;
@@ -32,6 +32,11 @@ class Camera {
 
   updateProjectionMatrix() {
     mat4.perspective(this.projectionMatrix, this.fovy, this.aspectRatio, this.near, this.far);
+  }
+
+  getFrustumInfo(): vec2 {
+    let v = vec2.fromValues(Math.tan(this.fovy / 2.0), this.aspectRatio);
+    return v;
   }
 
   update() {

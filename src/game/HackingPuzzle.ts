@@ -15,7 +15,8 @@ const OFFSET_4: number = 8;
 const OFFSET_5: number = 11;
 const OFFSET_6: number = 12;
 
-const TURN_DURATION: number = 0.25;
+const TURN_DURATION: number = 0.2;
+const PING_DURATION: number = 0.2;
 
 type IdxLink = [number, boolean];
 
@@ -174,11 +175,14 @@ class HackingPuzzle {
 	// index of hex highlighted by mouse
 	selected: number;
 
+	ping: EaseScalar;
+
 
 	constructor() {	
 		this.generatePuzzle();
 		this.selected = -1;
 		this.translations = [];
+		this.ping = new EaseScalar(0, 0, 0, 0);
 
 		let radius = 1.9;
 		for (var i = 0; i < 6; i++) {
@@ -222,7 +226,10 @@ class HackingPuzzle {
 		return this.selected;
 	}
 
-	
+	drawClickPing(currentTime: number) {
+		return this.ping.getLinear(currentTime);
+	}
+
 	updateLinks(udl: IdxLink[], hexIdx: number) {
 		for (var i = 0; i < udl.length; i++) {
 			var idx: number = udl[i][0];
@@ -257,7 +264,7 @@ class HackingPuzzle {
 
 		// center hex is special case
 		preIdx.push([]);
-		for (let i = 0; i < NUM_HEX; i++) preIdx[6].push(1 + 2 * i);
+		for (let i = 0; i < NUM_HEX - 1; i++) preIdx[6].push(1 + 2 * i);
 
 		console.log(preIdx);
 		for (let i = 0; i < preIdx.length; i++) {
@@ -360,10 +367,18 @@ class HackingPuzzle {
 	}
 
 
+	startPing(currentTime: number) {
+		if (this.selected !== -1) {
+			this.ping = new EaseScalar(0.0, 1.0, currentTime, currentTime + PING_DURATION);
+		}
+	}
+
+
 	// ray plane intersect and try to find closest hex
 	// currently assumed puzzle is on xy plane through origin
 	highlight(ro: vec3, rd: vec3) {
 		var n = vec3.fromValues(0, 0, 1);
+		let oldSelected = this.selected;
 		if (vec3.dot(ro, n) < 0.0001) {
 			this.selected = -1;
 		} else {
@@ -391,10 +406,10 @@ class HackingPuzzle {
 
 			if (bestDist > 1.0) bestIdx = -1;
 			this.selected = bestIdx;
-			console.log(this.selected);
+			//console.log(this.selected);
 
 		}
-
+		if (this.selected !== oldSelected) this.ping = new EaseScalar(0, 0, 0, 0);
 	}
 
 	leftClick(currentTime: number) {

@@ -16,12 +16,15 @@ uniform float u_Time;
 uniform mat4 u_View;
 uniform vec4 u_CamPos;   
 
-vec3 decodeNormal(in vec2 enc) {
-    enc = 2.0 * enc - 1.0;
-    vec3 n;
-    n.z = 1.0 - abs(enc.x) - abs(enc.y);
-    n.xy = n.z >= 0.0 ? enc.xy : (1.0 - abs(enc.yx)) * vec2(sign(enc.x), sign(enc.y));
-    return normalize(n);
+uniform float u_aspect;
+uniform float u_tanAlpha;
+
+
+vec3 recoverPosition(in float camDepth) {
+	vec2 ndc = fs_UV * 2.0 - 1.0;
+	float ny = abs(camDepth) * u_tanAlpha;
+	float nx = ny * u_aspect;
+	return vec3(nx, ny, 1.0) * vec3(ndc, camDepth);
 }
 
 vec3 fresnelSchlick(in vec3 reflectance0, in vec3 reflectance90, in float NdotV) {
@@ -109,15 +112,17 @@ vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 }
 
 void main() { 
-	// gbuffer reads
+	// read from GBuffers
 	vec4 gb0 = texture(u_gb0, fs_UV);
 	vec4 gb1 = texture(u_gb1, fs_UV);
 	vec4 gb2 = texture(u_gb2, fs_UV);
-	
-	vec3 P = gb0.xyz;
-	vec3 N = decodeNormal(vec2(gb0.w, gb1.w));
-	vec3 V = -normalize(P);
 
+	if (gb0.w > 0.0) return;
+
+	vec3 P = recoverPosition(gb0.w);
+	vec3 N = gb0.xyz;
+	vec3 V = -normalize(P);
+	
 	float rough = gb1.r;
 	float metal = gb1.g;
 	float occ = gb1.b;
@@ -126,6 +131,6 @@ void main() {
 	vec3 color = (dot(vec3(1.0), abs(P)) < EPS) ? vec3(0): PBRColor(rough, metal, col, N, P);
 
 	color = mix(color, vec3(0), 1.0 - occ);
-	
+
 	out_Col = vec4(color, 1.0);
 }

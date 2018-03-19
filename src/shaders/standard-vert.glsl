@@ -21,12 +21,13 @@ void main()
 {
     fs_Col = vs_Col;
     fs_UV = vs_UV;
+    fs_UV.y = 1.0 - fs_UV.y;
 
+    // fragment info is in view space
     mat3 invTranspose = mat3(u_ModelInvTr);
     mat3 view = mat3(u_View);
     fs_Nor = vec4(view * invTranspose * vec3(vs_Nor), 0);
     fs_Pos = u_View * u_Model * vs_Pos;
     
     gl_Position = u_Proj * u_View * u_Model * vs_Pos;
-    // gl_Position = vec4(pos[gl_VertexID], 0.5, 1.0);
 }
