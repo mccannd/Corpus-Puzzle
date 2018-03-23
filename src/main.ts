@@ -1,7 +1,6 @@
 import {vec3} from 'gl-matrix';
 import * as Stats from 'stats-js';
 import * as DAT from 'dat-gui';
-import Icosphere from './geometry/Icosphere';
 import Square from './geometry/Square';
 import Mesh from './geometry/Mesh';
 import HackingPuzzle from './game/HackingPuzzle'
@@ -14,11 +13,11 @@ import Texture from './rendering/gl/Texture';
 
 // Define an object with application parameters and button callbacks
 const controls = {
-  tesselations: 5,
-  'Load Scene': loadScene, 
+  depth_focus: 5.0,
+
 };
 
-let icosphere: Icosphere;
+
 let square: Square;
 
 let obj0: string;
@@ -47,13 +46,11 @@ function loadOBJText() {
 }
 
 function loadScene() {
-  icosphere && icosphere.destroy();
   square && square.destroy();
   mesh0 && mesh0.destroy();
 
 
-  icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, controls.tesselations);
-  icosphere.create();
+
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
 
@@ -78,8 +75,8 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-  gui.add(controls, 'tesselations', 0, 8).step(1);
-  gui.add(controls, 'Load Scene');
+  var focusSlider = gui.add(controls, 'depth_focus', 0.1, 50.0).step(0.1);
+
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -110,6 +107,11 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
     ]);
 
+  focusSlider.onChange(function(value: number) {
+    renderer.setDOFFocus(value);
+  });
+
+
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo"]);
   puzzleShader.setupTexUnits(["tex_Color"]);
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
@@ -134,11 +136,13 @@ function main() {
     renderer.clearGB();
     renderer.renderToGBuffer(camera, standardDeferred, [mesh0]);
     renderer.renderFromGBuffer(camera);
+    renderer.renderPostProcessHDR();
 
+    // make a better unified translucency pass
     puzzleShader.bindTexToUnit("tex_Color", puzzleSpriteSheet, 0);
     renderer.renderPuzzle(hp, camera, puzzleShader);
 
-    renderer.renderPostProcessHDR();
+    renderer.renderToneMap();
     renderer.renderPostProcessLDR();
 
     // Tell the browser to call `tick` again whenever it renders a new frame

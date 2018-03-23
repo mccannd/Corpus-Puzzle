@@ -52,8 +52,8 @@ float PBRSpec(in float roughness, in vec3 N, in vec3 L, in vec3 V) {
 	vec3 H = normalize(L + V);
 
 	float NdotL = max(dot(N, L), EPS);
-	float NdotV = max(dot(N, V), 0.0) + EPS;
-	float NdotH = max(dot(N, H), 0.0);
+	float NdotV = max(dot(N, V), EPS);
+	float NdotH = max(dot(N, H), EPS);
 
 	float D = distGGX(roughness, NdotH);
 	float G = geometricOcclusion(NdotL, NdotV, roughness);
@@ -68,13 +68,14 @@ vec3 PBRDiffuse(in vec3 diffuse) {
 vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 	vec3 V = -normalize(P);
 	N = faceforward(N, V, -N);
+	if (dot(N, V) < 0.01) return color / PI; // eh
 	float roughness = rough;
 	roughness = clamp(roughness, 0.03, 1.0);
 	float metallic = metal;
 	vec3 f0 = vec3(0.04);
 	vec3 diffuse = mix(color * (1.0 - f0), vec3(0.0), metallic);
 	vec3 specular = mix(f0, color, metallic);
-	float NdotV = max(0.0, dot(N, V));
+	float NdotV = max(EPS, dot(N, V));
 
 	vec3 refl0 = specular;
 	vec3 refl90 = vec3(clamp(max(max(specular.r, specular.b), specular.g) * 25.0, 0.0, 1.0));
@@ -101,6 +102,7 @@ vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 
 		vec3 diffuseCol = PBRDiffuse(diffuse);
 		float specCol = PBRSpec(roughness, N, L, V);
+		specCol *= step(0.01, dot(N, L));
 		vec3 finalCol = (vec3(1.0) - F) * (diffuseCol) + F * specCol;
 
 		finalCol *= lightRad * max(0.0, dot(N, L));
@@ -117,7 +119,10 @@ void main() {
 	vec4 gb1 = texture(u_gb1, fs_UV);
 	vec4 gb2 = texture(u_gb2, fs_UV);
 
-	if (gb0.w > 0.0) return;
+	if (gb0.w > 0.0){
+		out_Col = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	} 
 
 	vec3 P = recoverPosition(gb0.w);
 	vec3 N = gb0.xyz;

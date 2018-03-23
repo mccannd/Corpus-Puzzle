@@ -40,11 +40,8 @@ vec3 tonemapUC2(in vec3 col, in float gamma, in float exposure, in float whitePo
 
 
 void main() { 
-	// TODO: proper tonemapping
 	vec3 color = texture(u_frame, fs_UV).xyz;
-
 	color = tonemapUC2(color, 2.2, 2.0, 11.2);
-
 	// gamma correction
 	//color = pow(color, vec3(1.0 / 2.2));
 	out_Col = vec4(color, 1.0);
