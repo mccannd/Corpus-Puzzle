@@ -56,6 +56,14 @@ class OpenGLRenderer {
     new Shader(gl.FRAGMENT_SHADER, require('../../shaders/blurVertical-frag.glsl'))
     );
 
+  highpass: PostProcess = new PostProcess(
+    new Shader(gl.FRAGMENT_SHADER, require('../../shaders/highpass-frag.glsl'))
+    );
+
+  additive: PostProcess = new PostProcess(
+    new Shader(gl.FRAGMENT_SHADER, require('../../shaders/add-frag.glsl'))
+    );
+
   blurBuffers: WebGLFramebuffer[];
   blurSeparator: WebGLFramebuffer;
   blurTargets: WebGLTexture[];
@@ -86,11 +94,6 @@ class OpenGLRenderer {
     this.blurSeparator = undefined;
 
     this.deferredShader.setupFloatUnits(['u_aspect', 'u_tanAlpha'])
-
-    // TODO: these are placeholder post shaders, replace them with something good
-    //this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost-frag.glsl'))));
-    //this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost2-frag.glsl'))));
-    //this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost3-frag.glsl'))));
 
     if (!gl.getExtension("OES_texture_float_linear")) {
       console.error("OES_texture_float_linear not available");
@@ -128,8 +131,15 @@ class OpenGLRenderer {
     gl.uniform1i(dofCompLoc0, 1);
     gl.uniform1i(dofCompLoc1, 2);
 
+    var addLoc0 = gl.getUniformLocation(this.additive.prog, "u_overlay");
+    this.additive.use();
+    gl.uniform1i(addLoc0, 1);
+
     this.dofVertPass.setupFloatUnits(["alphaBlur"]);
     this.dofHorizPass.setupFloatUnits(["alphaBlur"]);
+    this.highpass.setupFloatUnits(["u_Threshold"]);
+
+    this.highpass.setFloatUniform("u_Threshold", 1.0);
   }
 
 
@@ -404,6 +414,7 @@ class OpenGLRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[2]);
     this.dofVertPass.draw();
 
+    // DOF composite
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[1]);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     this.dofComposite.use();
@@ -414,6 +425,37 @@ class OpenGLRenderer {
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[1]);
     this.dofComposite.draw();
+
+    // high pass
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[0]);
+    gl.viewport(0, 0, gl.drawingBufferWidth / this.blurDivisor, gl.drawingBufferHeight / this.blurDivisor);
+    this.highpass.use();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[1]);
+    this.highpass.draw();
+
+    this.dofHorizPass.setFloatUniform('alphaBlur', 0.0);   
+    this.dofVertPass.setFloatUniform('alphaBlur', 0.0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[1]);
+    this.dofHorizPass.use();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[0]);
+    this.dofHorizPass.draw();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[0]);
+    this.dofVertPass.use();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[1]);
+    this.dofVertPass.draw();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[0]);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    this.additive.use();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[1]);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[0]);
+    this.additive.draw();
 
     // let i = 0;
     // for (i = 0; i < this.post32Passes.length; i++){
@@ -469,7 +511,7 @@ class OpenGLRenderer {
     gl.activeTexture(gl.TEXTURE0);
     // bound texture is the last one processed before
 
-    gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[1]);
+    gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[0]);
 
     this.tonemapPass.draw();
   }
@@ -499,7 +541,7 @@ class OpenGLRenderer {
 
 
   renderPuzzle(hp: HackingPuzzle, camera: Camera, prog: ShaderProgram) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[1]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[0]);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
