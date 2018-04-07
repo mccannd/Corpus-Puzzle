@@ -3,7 +3,8 @@ precision highp float;
 
 in vec2 fs_UV;
 
-uniform float u_focusDist;
+uniform float u_focusDistNear;
+uniform float u_focusDistFar;
 uniform float u_focusRadNear;
 uniform float u_focusRadFar;
 
@@ -21,10 +22,9 @@ void main() {
 		return;
 	} 
 	vec4 col = texture(u_frame, fs_UV);
-	float near = clamp((u_focusDist + zdepth) / u_focusRadNear, 0.0, 1.0);
-	float far = clamp((-zdepth - u_focusDist) / u_focusRadFar, 0.0, 1.0);
+	float near = clamp((u_focusDistNear + zdepth) / u_focusRadNear, 0.0, 1.0);
+	float far = clamp((-zdepth - u_focusDistFar) / u_focusRadFar, 0.0, 1.0);
 
 	fgbg[0] = vec4(col.rgb, near);
 	fgbg[1] = vec4(col.rgb, far);
-	//fgbg[0].rgb = vec3(zdepth);
 }

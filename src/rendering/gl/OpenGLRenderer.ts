@@ -119,8 +119,9 @@ class OpenGLRenderer {
     var dofSepLoc = gl.getUniformLocation(this.dofSeparator.prog, "u_posGB");
     this.dofSeparator.use();
     gl.uniform1i(dofSepLoc, 1);
-    this.dofSeparator.setupFloatUnits(["u_focusDist", "u_focusRadNear", "u_focusRadFar"]);
-    this.dofSeparator.setFloatUniform("u_focusDist", 5.0);
+    this.dofSeparator.setupFloatUnits(["u_focusDistNear", "u_focusDistFar", "u_focusRadNear", "u_focusRadFar"]);
+    this.dofSeparator.setFloatUniform("u_focusDistNear", 5.0);
+    this.dofSeparator.setFloatUniform("u_focusDistFar", 6.0);
     this.dofSeparator.setFloatUniform("u_focusRadNear", 3.0);
     this.dofSeparator.setFloatUniform("u_focusRadFar", 3.0);
     
@@ -283,6 +284,16 @@ class OpenGLRenderer {
     this.currentTime = currentTime;
   }
 
+  setDOFFocus(focusN: number, focusF: number, radN: number, radF: number) {
+    this.dofSeparator.setFloatUniform("u_focusDistNear", focusN);
+    this.dofSeparator.setFloatUniform("u_focusDistFar", focusF);
+    this.dofSeparator.setFloatUniform("u_focusRadNear", radN);
+    this.dofSeparator.setFloatUniform("u_focusRadFar", radF);
+  }
+
+  setBloomThreshold(threshold: number) {
+    this.highpass.setFloatUniform("u_Threshold", threshold);
+  }
 
   clear() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -318,7 +329,7 @@ class OpenGLRenderer {
     let sc = mat4.create();
     mat4.fromScaling(sc, vec3.fromValues(3.0, 3.0, 3.0));
     mat4.fromYRotation(ry, Math.PI);
-    mat4.fromTranslation(model, vec3.fromValues(0, 0.5, -4.0));
+    mat4.fromTranslation(model, vec3.fromValues(0, 1.5, -4.0));
     mat4.multiply(ry, sc, ry);
     mat4.multiply(model, model, ry);
     //mat4.identity(model);
@@ -340,9 +351,6 @@ class OpenGLRenderer {
 
   }
 
-  setDOFFocus(focus: number) {
-    this.dofSeparator.setFloatUniform("u_focusDist", focus);
-  }
 
   renderFromGBuffer(camera: Camera) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[0]);

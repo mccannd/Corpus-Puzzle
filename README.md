@@ -1,3 +1,18 @@
-Original base code: 
-https://github.com/CIS-566-2018/CIS-566-Project-0
-by Austin Eng
+# Under Construction!
+
+![](./readmeImage/WIP.PNG)
+
+## Features: Complete
+- Base framework and renderer
+- Puzzle Generation
+- Puzzle Logic
+
+## Features: In Progress
+- Good post-processing: 70%
+- Puzzle Display: 70%
+
+## Features: NYI
+- Appropriate 3D Assets
+- Generalized solution to transparency passes
+- New camera
+- High level game logic (time trial, UI, etc)

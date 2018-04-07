@@ -13,8 +13,11 @@ import Texture from './rendering/gl/Texture';
 
 // Define an object with application parameters and button callbacks
 const controls = {
-  depth_focus: 5.0,
-
+  depthFocusNear: 5.0,
+  depthFocusFar: 6.0,
+  depthRadiusNear: 3.0,
+  depthRadiusFar: 3.0,
+  bloomThreshold: 2.0,
 };
 
 
@@ -75,8 +78,11 @@ function main() {
 
   // Add controls to the gui
   const gui = new DAT.GUI();
-  var focusSlider = gui.add(controls, 'depth_focus', 0.1, 50.0).step(0.1);
-
+  var focusSlider0 = gui.add(controls, 'depthFocusNear', 0.1, 50.0).step(0.1).listen();
+  var focusSlider1 = gui.add(controls, 'depthFocusFar', 0.1, 50.0).step(0.1).listen();
+  var focusSlider2 = gui.add(controls, 'depthRadiusNear', 0.1, 20.0).step(0.1);
+  var focusSlider3 = gui.add(controls, 'depthRadiusFar', 0.1, 20.0).step(0.1);
+  var bloomSlider0 = gui.add(controls, 'bloomThreshold', 0.1, 20.0).step(0.1);
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -107,10 +113,27 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
     ]);
 
-  focusSlider.onChange(function(value: number) {
-    renderer.setDOFFocus(value);
+  focusSlider0.onChange(function(value: number) {
+    if (controls.depthFocusFar < value) controls.depthFocusFar = value;
+    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
   });
 
+  focusSlider1.onChange(function(value: number) {
+    if (controls.depthFocusNear > value) controls.depthFocusNear = value;
+    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  });
+
+  focusSlider2.onChange(function(value: number) {
+    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  });
+
+  focusSlider3.onChange(function(value: number) {
+    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  });
+
+  bloomSlider0.onChange(function(value: number) {
+    renderer.setBloomThreshold(value);
+  });
 
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo"]);
   puzzleShader.setupTexUnits(["tex_Color"]);
