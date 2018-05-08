@@ -193,6 +193,8 @@ class HackingPuzzle {
 
 	ping: EaseScalar;
 
+	interactionLocked : boolean = false;
+	lockTime: number;
 
 	constructor() {	
 		this.generatePuzzle();
@@ -215,6 +217,15 @@ class HackingPuzzle {
 		//mat4.identity(m7);
 
 		this.translations.push(vec3.fromValues(0.0, 0.0, 0.0));
+	}
+
+	lockInteraction(currentTime: number) {
+		this.interactionLocked = true;
+		this.lockTime = currentTime;
+	}
+
+	isDead(currentTime: number) {
+		return currentTime > this.lockTime + WIN_DURATION;
 	}
 
 	// world space matrices for each hex
@@ -379,6 +390,7 @@ class HackingPuzzle {
 	}
 
 	verify(): boolean {
+		if (this.interactionLocked) return false;
 		var correct = true;
 		for (var i = 0; i < this.linkStatus.length; ++i) {
 			correct = correct && (this.linkStatus[i][0] == this.linkStatus[i][1]);
@@ -441,13 +453,13 @@ class HackingPuzzle {
 	}
 
 	leftClick(currentTime: number) {
-		if (this.selected === -1) return;
+		if (this.selected === -1 || this.interactionLocked) return;
 		this.hexes[this.selected].startAnimateCW(currentTime);
 		this.updateLinks(this.hexes[this.selected].rotateCW(), this.selected);
 	}
 
 	rightClick(currentTime: number) {
-		if (this.selected === -1) return;
+		if (this.selected === -1 || this.interactionLocked) return;
 		this.hexes[this.selected].startAnimateCCW(currentTime);
 		this.updateLinks(this.hexes[this.selected].rotateCCW(), this.selected);
 	}

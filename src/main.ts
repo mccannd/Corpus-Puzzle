@@ -89,9 +89,8 @@ function loadScene() {
 
 function refreshText(c: HTMLCanvasElement) {
   let ctx = c.getContext("2d");
-  ctx.fillStyle = "#435a6b";
-  ctx.font = "30px Verdana";
-  ctx.strokeStyle = 'blue';
+  ctx.fillStyle = "#f7e9a5";
+  ctx.font = "30px Lato";
   return ctx;
 }
 
@@ -124,6 +123,7 @@ function main() {
   canvas2d.height = window.innerHeight;
   canvas2d.width =  window.innerWidth;
   let ctx2d = refreshText(canvas2d);
+  let score = 0;
 
   // `setGL` is a function imported above which sets the value of `gl` in the `globals.ts` module.
   // Later, we can import `gl` from `globals.ts` to access it
@@ -132,7 +132,7 @@ function main() {
   // Initial call to load scene
   loadScene();
 
-  const camera = new Camera(vec3.fromValues(3.5, 0, 5.5), vec3.fromValues(0, 0, 0));
+  const camera = new Camera(vec3.fromValues(4, 0, 7), vec3.fromValues(0, 0, 0));
   camera.update();
   camera.updateFixed(0.0, 0.0);
 
@@ -193,7 +193,19 @@ function main() {
     if (!fixedCamera) {
       camera.update();
     }
+
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+
+    if (hp.verify()) {
+      //switchPuzzles();
+      hp.lockInteraction(timer.currentTime);
+      score += 1;
+    }
+
+    if (hp.isDead(timer.currentTime)) {
+      switchPuzzles();
+    }
+
     timer.updateTime();
     renderer.updateTime(timer.deltaTime, timer.currentTime);
 
@@ -216,7 +228,8 @@ function main() {
     renderer.renderToneMap();
     renderer.renderPostProcessLDR();
 
-    ctx2d.fillText("Scoopidy Woop", 0, 100);
+    ctx2d.fillText((timer.remainingTime).toFixed(1).toString(), 100, 100);
+    ctx2d.fillText(score.toString(), 100, 200);
     //ctx2d.strokeText("A B C D", 0, 100);
     //ctx2d.fillRect(0, 0, 50, 50);
     //ctx2d.fillRect(0, 0, 200, 500);
@@ -259,6 +272,9 @@ function main() {
     return false;
   }, false);
 
+  canvas2d.oncontextmenu = function (e) {
+    e.preventDefault();
+  };
 
   window.addEventListener('contextmenu', function(evt) {
     hp.rightClick(timer.currentTime);
