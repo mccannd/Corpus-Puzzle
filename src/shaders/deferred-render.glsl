@@ -151,7 +151,7 @@ void main() {
 	float metal = gb1.g;
 	float occ = gb1.b;
 
-	vec3 emissive = gb0.z * gb3.xyz;
+	vec3 emissive = gb0.z * pow(gb3.xyz, vec3(2.2));
 
 	vec3 col = gb2.xyz;
 	vec3 color = (dot(vec3(1.0), abs(P)) < EPS) ? vec3(0): PBRColor(rough, metal, col, N, P);

@@ -18,6 +18,7 @@ class Camera {
   focus: vec3 = vec3.create();
   focusR: vec3 = vec3.create();
   focusU: vec3 = vec3.create();
+  startEye: vec3 = vec3.create();
 
   constructor(position: vec3, target: vec3) {
     this.controls = CameraControls(document.getElementById('canvas'), {
@@ -35,6 +36,7 @@ class Camera {
     vec3.copy(this.focus, this.target);
     vec3.copy(this.focusU, this.controls.up);
     vec3.copy(this.target, target);
+    vec3.copy(this.startEye, position);
     //console.log(this.target);
   }
 
@@ -84,10 +86,10 @@ class Camera {
 
     //console.log(this.target);
 
-    mat4.lookAt(this.viewMatrix, this.controls.eye, this.target, this.controls.up);
+    mat4.lookAt(this.viewMatrix, this.startEye, this.target, this.controls.up);
   
     // do not tick the controls
-    vec3.sub(this.forward, this.target, this.controls.eye);
+    vec3.sub(this.forward, this.target, this.startEye);
     vec3.normalize(this.forward, this.forward);
     vec3.cross(this.right, this.forward, this.controls.up);
     vec3.normalize(this.right, this.right);
