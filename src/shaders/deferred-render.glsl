@@ -10,6 +10,7 @@ out vec4 out_Col;
 uniform sampler2D u_gb0;
 uniform sampler2D u_gb1;
 uniform sampler2D u_gb2;
+uniform sampler2D u_gb3;
 
 uniform float u_Time;
 
@@ -19,6 +20,14 @@ uniform vec4 u_CamPos;
 uniform float u_aspect;
 uniform float u_tanAlpha;
 
+
+vec3 decodeNormal(in vec2 enc) {
+    enc = 2.0 * enc - 1.0;
+    vec3 n;
+    n.z = 1.0 - abs(enc.x) - abs(enc.y);
+    n.xy = n.z >= 0.0 ? enc.xy : (1.0 - abs(enc.yx)) * vec2(sign(enc.x), sign(enc.y));
+    return normalize(n);
+}
 
 vec3 recoverPosition(in float camDepth) {
 	vec2 ndc = fs_UV * 2.0 - 1.0;
@@ -126,7 +135,8 @@ void main() {
 	// read from GBuffers
 	vec4 gb0 = texture(u_gb0, fs_UV);
 	vec4 gb1 = texture(u_gb1, fs_UV);
-	vec4 gb2 = texture(u_gb2, fs_UV);
+	vec4 gb2 = texture(u_gb2, fs_UV);	
+	vec4 gb3 = texture(u_gb3, fs_UV);
 
 	if (gb0.w > 0.0){
 		out_Col = vec4(0.0, 0.0, 0.0, 1.0);
@@ -134,17 +144,20 @@ void main() {
 	} 
 
 	vec3 P = recoverPosition(gb0.w);
-	vec3 N = gb0.xyz;
+	vec3 N = decodeNormal(gb0.xy);
 	vec3 V = -normalize(P);
 	
 	float rough = gb1.r;
 	float metal = gb1.g;
 	float occ = gb1.b;
 
+	vec3 emissive = gb0.z * gb3.xyz;
+
 	vec3 col = gb2.xyz;
 	vec3 color = (dot(vec3(1.0), abs(P)) < EPS) ? vec3(0): PBRColor(rough, metal, col, N, P);
 
-	color = mix(color, vec3(0), 1.0 - occ);
+	color = mix(color, vec3(0), 1.0 - occ) + emissive;
 
 	out_Col = vec4(color, 1.0);
+	//out_Col = gb3;
 }

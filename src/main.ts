@@ -28,6 +28,8 @@ let mesh0: Mesh;
 
 let tex0: Texture;
 let tex1: Texture;
+let tex2: Texture;
+
 let puzzleSpriteSheet: Texture;
 
 let hp: HackingPuzzle;
@@ -79,6 +81,7 @@ function loadScene() {
 
   tex0 = new Texture('./src/resources/textures/sgrassCol.png');
   tex1 = new Texture('./src/resources/textures/sgrassPBR.png');
+  tex2 = new Texture('./src/resources/textures/testing.png');
   puzzleSpriteSheet = new Texture('./src/resources/textures/puzzleSprites_channels.png');
 
 }
@@ -156,7 +159,10 @@ function main() {
     renderer.setBloomThreshold(value);
   });
 
-  standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo"]);
+  standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo", "tex_Emissive"]);
+  standardDeferred.setupFloatUnits(["u_emissiveStrength"]);
+  standardDeferred.setFloatUniform("u_emissiveStrength", 1.0);
+
   puzzleShader.setupTexUnits(["tex_Color"]);
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
   puzzleShader.setupFloatUnits(["u_highlight"]);
@@ -178,6 +184,7 @@ function main() {
 
     standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
     standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
+    standardDeferred.bindTexToUnit("tex_Emissive", tex2, 2);
 
     renderer.clear();
     renderer.clearGB();
