@@ -30,21 +30,38 @@ let tex0: Texture;
 let tex1: Texture;
 let puzzleSpriteSheet: Texture;
 
-var timer = {
+let hp: HackingPuzzle;
+let hpBackup: HackingPuzzle;
+
+let fixedCamera: boolean = true;
+
+let GameStates = Object.freeze({"starting":1, "ongoing":2, "ending":3});
+let state = GameStates.starting;
+
+let bgm = new Audio('./src/resources/sounds/WARFRAME OST March Of The Moa.mp3');
+
+let timer = {
   deltaTime: 0.0,
   startTime: 0.0,
   currentTime: 0.0,
+  remainingTime: 0.0,
   updateTime: function() {
     var t = Date.now();
     t = (t - timer.startTime) * 0.001;
     timer.deltaTime = t - timer.currentTime;
     timer.currentTime = t;
+    timer.remainingTime = timer.remainingTime - timer.deltaTime;
+  },
+  expired: function() {
+    return timer.remainingTime <= 0.0;
   },
 };
 
 
+
+
 function loadOBJText() {
-  obj0 = readTextFile('../resources/obj/lopolyLessCheek2.obj')
+  obj0 = readTextFile('./src/resources/obj/lopolyLessCheek2.obj')
 
 }
 
@@ -60,21 +77,23 @@ function loadScene() {
   mesh0 = new Mesh(obj0, vec3.fromValues(0, 0, 0));
   mesh0.create();
 
-  tex0 = new Texture('../resources/textures/sgrassCol.png');
-  tex1 = new Texture('../resources/textures/sgrassPBR.png');
-  puzzleSpriteSheet = new Texture('../resources/textures/puzzleSprites_channels.png');
+  tex0 = new Texture('./src/resources/textures/sgrassCol.png');
+  tex1 = new Texture('./src/resources/textures/sgrassPBR.png');
+  puzzleSpriteSheet = new Texture('./src/resources/textures/puzzleSprites_channels.png');
 
 }
 
 
 function main() {
+  bgm.volume = 0.0;
+
   // Initial display for framerate
   // const stats = Stats();
   // stats.setMode(0);
   // stats.domElement.style.position = 'absolute';
   // stats.domElement.style.left = '0px';
   // stats.domElement.style.top = '0px';
-  //document.body.appendChild(stats.domElement);
+  // document.body.appendChild(stats.domElement);
 
   // Add controls to the gui
   const gui = new DAT.GUI();
@@ -97,7 +116,9 @@ function main() {
   // Initial call to load scene
   loadScene();
 
-  const camera = new Camera(vec3.fromValues(0, 0, 5), vec3.fromValues(0, 0, 0));
+  const camera = new Camera(vec3.fromValues(3.5, 0, 5.5), vec3.fromValues(0, 0, 0));
+  camera.update();
+  camera.updateFixed(0.0, 0.0);
 
   const renderer = new OpenGLRenderer(canvas);
   renderer.setClearColor(0, 0, 0, 1);
@@ -140,20 +161,23 @@ function main() {
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
   puzzleShader.setupFloatUnits(["u_highlight"]);
 
-  let hp: HackingPuzzle = new HackingPuzzle();
+  hp = new HackingPuzzle();
+  hpBackup = new HackingPuzzle(); // switched upon win with old
 
   // This function will be called every frame
   let frame = 0;
   function tick() {
-    camera.update();
+    //camera.updateFixed();
     //stats.begin();
+    if (!fixedCamera) {
+      camera.update();
+    }
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     timer.updateTime();
     renderer.updateTime(timer.deltaTime, timer.currentTime);
 
     standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
     standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
-
 
     renderer.clear();
     renderer.clearGB();
@@ -170,8 +194,11 @@ function main() {
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     frame++;
-    requestAnimationFrame(tick);
+    if (state == GameStates.ongoing) {
+      requestAnimationFrame(tick);
+    } 
     // setTimeout(tick, 1000);
+    //if (timer.expired()) state = GameStates.ending;
   }
 
   window.addEventListener('resize', function() {
@@ -185,16 +212,17 @@ function main() {
     var v = 1.0 - evt.y / window.innerHeight;
     u = 2.0 * u - 1.0;
     v = 2.0 * v - 1.0;
+    if (fixedCamera) {
+      camera.updateFixed(u, v);
+    }
     var ray = camera.raycast(u, v);
     hp.highlight(ray[0], ray[1]);
-    //console.log(u + ', ' + v);
   }, false);
 
   window.addEventListener('click', function(evt) {
     hp.leftClick(timer.currentTime);
     if (hp.verify()) console.log('shit dude');
     return false;
-    //console.log(u + ', ' + v);
   }, false);
 
 
@@ -202,22 +230,43 @@ function main() {
     hp.rightClick(timer.currentTime);
     if (hp.verify()) console.log('shit dude');
     return false;
-    //console.log(u + ', ' + v);
   }, false);
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
 
+  function beginGame() {
+    timer.remainingTime = 60.0;
+
+    state = GameStates.ongoing;
+    tick();
+    bgm.play();
+  }
+
+  function switchPuzzles() {
+    hp = hpBackup;
+    hpBackup = new HackingPuzzle();
+  }
+
   // Start the render loop
-  tick();
+  
+  beginGame();
 }
+
+
+
+
+
 
 
 function setup() {
   timer.startTime = Date.now();
   loadOBJText();
   main();
+
 }
+
+
 
 setup();

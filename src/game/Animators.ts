@@ -1,3 +1,5 @@
+import {vec3} from 'gl-matrix';
+
 
 function clamp(x: number, min: number, max: number) : number { return Math.max(Math.min(max, x), min); }
 
@@ -15,6 +17,35 @@ function normalize(x: number, min: number, max: number) {
 	return remap(x, min, max, 0.0, 1.0);
 }
 
+
+class EaseVector {
+	v0: vec3;
+	v1: vec3;
+	t0: number;
+	t1: number;
+
+	constructor(startVal: vec3, endVal: vec3, startTime: number, endTime: number) {
+		this.v0 = startVal;
+		this.v1 = endVal;
+		this.t0 = startTime;
+		this.t1 = endTime;
+	}
+
+	getLinear(currentTime: number): vec3 {
+		var v = vec3.create();
+		vec3.lerp(v, this.v0, this.v1, normalize(currentTime, this.t0, this.t1));
+		return v;
+	}
+
+	getSmooth(currentTime: number): vec3 {
+		var t = normalize(currentTime, this.t0, this.t1);
+		t = t * t * (3.0 - 2.0 * t);
+		var v = vec3.create();
+		vec3.lerp(v, this.v0, this.v1, t);
+		return v;
+	}
+
+}
 
 class EaseScalar {
 	v0: number;
@@ -53,4 +84,7 @@ class EaseScalar {
 
 }
 
-export default EaseScalar;
+export {
+	EaseScalar,
+	EaseVector,
+}

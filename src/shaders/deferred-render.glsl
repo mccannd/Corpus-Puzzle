@@ -84,18 +84,16 @@ vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 
 	// TODO: light with good UBO
 
-	vec3 lightPos[3];
-	lightPos[0] = (u_View * vec4(3.0, 3.0 * sin(u_Time), 3.0 * cos(u_Time), 1)).xyz;
-	lightPos[1] = (u_View * vec4(-3.0, 3.0 * cos(u_Time * 0.9), 3.0 * sin(u_Time * 0.9), 1)).xyz;
-	lightPos[2] = (u_View * vec4(3.0 * cos(u_Time * 0.7), 0.0, 3.0 * sin(u_Time * 0.7), 1)).xyz;
+	vec3 lightPos[2];
+	lightPos[0] = (u_View * vec4(0.0, 0.0, 0.0, 1)).xyz;
+	lightPos[1] = (u_View * vec4(-3.0, -3.0, -3.0, 1)).xyz;
 
-	vec3 lightCol[3];
-	lightCol[0] = 21.0 * vec3(1.0, 0.8, 0.7);
-	lightCol[1] = 3.0 * vec3(0.1, 0.6, 1.0);
-	lightCol[2] = 10.0 * vec3(0.3, 1.0, 0.8);
+	vec3 lightCol[2];
+	lightCol[0] = 10.0 * vec3(0.2, 1.0, 0.8);
+	lightCol[1] = 20.0 * vec3(1.0, 0.05, 0.05) * smoothstep(0.0, 1.0, (0.5 + 0.5 * cos(3.14 * u_Time)));
 
 	vec3 accumCol = vec3(0.0);
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 2; i++) {
 		vec3 lightDisp = lightPos[i] - P;
 		vec3 L = normalize(lightDisp);
 		vec3 lightRad = lightCol[i] / (1.0 + dot(lightDisp, lightDisp));
@@ -107,8 +105,19 @@ vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 
 		finalCol *= lightRad * max(0.0, dot(N, L));
 
+
 		accumCol += finalCol;
 	}
+
+	// directional light
+	vec3 L = normalize((u_View * vec4(1.0, 1.0, 1.0, 0.0)).xyz);
+	vec3 diffuseCol = PBRDiffuse(diffuse);
+	float specCol = PBRSpec(roughness, N, L, V);
+	specCol *= step(0.01, dot(N, L));
+	vec3 finalCol = (vec3(1.0) - F) * (diffuseCol) + F * specCol;
+	finalCol *= vec3(1.0, 0.9, 0.8) * max(0.0, dot(N, L));
+	accumCol += finalCol;
+
 
 	return accumCol;
 }

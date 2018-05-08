@@ -15,6 +15,9 @@ class Camera {
   up: vec3 = vec3.create();
   right: vec3 = vec3.create();
   forward: vec3 = vec3.create();
+  focus: vec3 = vec3.create();
+  focusR: vec3 = vec3.create();
+  focusU: vec3 = vec3.create();
 
   constructor(position: vec3, target: vec3) {
     this.controls = CameraControls(document.getElementById('canvas'), {
@@ -24,6 +27,15 @@ class Camera {
     this.controls.mode = 'turntable';
     vec3.add(this.target, this.position, this.direction);
     mat4.lookAt(this.viewMatrix, this.controls.eye, this.controls.center, this.controls.up);
+    var temp = vec3.create();
+    vec3.sub(temp, target, position);
+    vec3.normalize(temp, temp)
+    vec3.cross(this.focusR, temp, this.controls.up);
+    vec3.normalize(this.focusR, this.focusR);
+    vec3.copy(this.focus, this.target);
+    vec3.copy(this.focusU, this.controls.up);
+    vec3.copy(this.target, target);
+    //console.log(this.target);
   }
 
   setAspectRatio(aspectRatio: number) {
@@ -57,11 +69,35 @@ class Camera {
     //console.log(this.up);
   }
 
+  updateFixed(u: number, v: number) {
+
+    //vec3.add(this.target, this.position, this.direction);
+    //console.log(this.target);
+    
+    let rs = vec3.create();
+    vec3.scale(rs, this.focusR, u * 0.5);
+    //console.log(rs);
+    let us = vec3.create();
+    vec3.scale(us, this.focusU, v * 0.5);
+    vec3.add(this.target, this.focus, rs);
+    vec3.add(this.target, this.target, us);
+
+    //console.log(this.target);
+
+    mat4.lookAt(this.viewMatrix, this.controls.eye, this.target, this.controls.up);
+  
+    // do not tick the controls
+    vec3.sub(this.forward, this.target, this.controls.eye);
+    vec3.normalize(this.forward, this.forward);
+    vec3.cross(this.right, this.forward, this.controls.up);
+    vec3.normalize(this.right, this.right);
+    vec3.cross(this.up, this.right, this.forward);
+    vec3.normalize(this.up, this.up);
+  }
+
   // returns origin and direction
   raycast(u: number, v: number) : [vec3, vec3] {
-    //console.log(this.forward);
-    //console.log(this.up);
-    //console.log(this.right);
+
     let len = this.near;
     var fc = vec3.create();
     vec3.scale(fc, this.forward, len);
@@ -74,8 +110,7 @@ class Camera {
     vec3.add(fc, urc, fc);
     var dir = vec3.create();
     vec3.normalize(dir, fc);
-    //console.log('ro: ' + this.controls.eye + " rd: " + dir);
-    //vec3.add(fc, fc, this.controls.eye);
+
     return [this.controls.eye, dir];
   }
 };

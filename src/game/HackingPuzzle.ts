@@ -1,5 +1,5 @@
 import {mat4, vec3} from 'gl-matrix';
-import EaseScalar from './Animators'
+import {EaseScalar, EaseVector} from './Animators'
 
 const NUM_LINKS: number = 12;
 const NUM_HEX: number = 7;
@@ -17,6 +17,7 @@ const OFFSET_6: number = 12;
 
 const TURN_DURATION: number = 0.2;
 const PING_DURATION: number = 0.2;
+const WIN_DURATION: number = 0.5;
 
 type IdxLink = [number, boolean];
 
@@ -92,7 +93,8 @@ class Hex {
 	imageType: number;
 	linkIdx: number[];
 	linkValues: boolean[];
-	currentRotation: EaseScalar;	
+	currentRotation: EaseScalar;
+	currentTranslation: EaseVector;	
 
 	offsetRot(): number { return -this.cwOffset / 3.0 * Math.PI; }
 
@@ -106,6 +108,8 @@ class Hex {
 		this.cwOffset = patternInfo[1];
 		let r = this.offsetRot();
 		this.currentRotation = new EaseScalar(r, r, 0.0, 0.0);
+		let v = vec3.create();
+		this.currentTranslation = new EaseVector(v, v, 0.0, 0.0);
 	}
 
 	relevantLinks(): IdxLink[] {
@@ -116,8 +120,15 @@ class Hex {
 		return links;
 	}
 
-	initRotation() { let r = this.offsetRot(); this.currentRotation = new EaseScalar(r, r, 0.0, 0.0); }
-
+	initRotation() { 
+		let r = this.offsetRot(); 
+		this.currentRotation = new EaseScalar(r, r, 0.0, 0.0); 
+	}
+	
+	initTranslation() { 
+		let v = vec3.fromValues(0.0, 0.0, 0.0); 
+		this.currentTranslation = new EaseVector(v, v, 0.0, 0.0); 
+	}
 	
 	startAnimateCW(currentTime: number) {	
 		let r = this.offsetRot();
@@ -127,6 +138,10 @@ class Hex {
 	startAnimateCCW(currentTime: number) {	
 		let r = this.offsetRot();
 		this.currentRotation = new EaseScalar(r, r + Math.PI / 3.0, currentTime, currentTime + TURN_DURATION);
+	}
+
+	startAnimateOffset(currentTime: number, src: vec3, tgt: vec3, duration: number) {
+		this.currentTranslation = new EaseVector(src, tgt, currentTime, currentTime + duration);
 	}
 
 	rotateCW(): IdxLink[] {
@@ -159,6 +174,7 @@ class Hex {
 	getImageType() : number { return this.imageType; }
 	getOffset() : number { return this.cwOffset; }
 	getRotation(currentTime: number) : number { return this.currentRotation.getPower(currentTime, 1.7); }
+	getTranslation(currentTime: number) : vec3 { return this.currentTranslation.getSmooth(currentTime); }
 }
 
 const linkToHex: number[][] = [[0, 5], [0, 6], [0, 1], [1, 6], [1, 2], [2, 6], [2, 3], [3, 6], [3, 4], [4, 6], [4, 5], [5, 6]];
@@ -168,7 +184,7 @@ class HackingPuzzle {
 
 	// 7 hexes in puzzle, hex[6] is in the center
 	hexes: Hex[];
-	translations: mat4[];
+	translations: vec3[];
 	// there are 12 possible connection points for the puzzle between hexes
 	// links are pairs between hexes, and multiple solutions can be possible
 	linkStatus: boolean[][];
@@ -190,24 +206,29 @@ class HackingPuzzle {
 			var px = Math.cos(theta) * radius;
 			var py = Math.sin(theta) * radius;
 			var pz = 0;
-			var mi = mat4.create();
-			mat4.fromTranslation(mi, vec3.fromValues(px, py, pz));
-			this.translations.push(mi);
+			var tr = vec3.fromValues(px, py, pz);
+			//var mi = mat4.create();
+			//mat4.fromTranslation(mi, vec3.fromValues(px, py, pz));
+			this.translations.push(tr);
 		}
-		var m7 = mat4.create();
-		mat4.identity(m7);
+		//var m7 = mat4.create();
+		//mat4.identity(m7);
 
-		this.translations.push(m7);
+		this.translations.push(vec3.fromValues(0.0, 0.0, 0.0));
 	}
 
 	// world space matrices for each hex
 	drawMatrices(currentTime: number): mat4[] {
-		var transforms: mat4[] = [];
+		let transforms: mat4[] = [];
 
 		for (var i = 0; i < 7; i++) {
-			var rotation = mat4.create();
+			let rotation = mat4.create();
 			rotation = mat4.fromZRotation(rotation, this.hexes[i].getRotation(currentTime));
-			mat4.multiply(rotation, this.translations[i], rotation);
+			let mt = mat4.create();
+			let tO = this.hexes[i].getTranslation(currentTime);
+			vec3.add(tO, tO, this.translations[i]);
+			mat4.fromTranslation(mt, tO);
+			mat4.multiply(rotation, mt, rotation);
 			transforms.push(rotation);
 		}
 
@@ -220,7 +241,6 @@ class HackingPuzzle {
 		for (var i = 0; i < 7; i++) types.push(this.hexes[i].getImageType());
 		return types;
 	}
-
 
 	drawHighlightIndex(): number {
 		return this.selected;
@@ -308,7 +328,7 @@ class HackingPuzzle {
 		}
 
 		// create baseline link status
-		for (var i = 0; i < links.length; i++) {
+		for (var i = 0; i < links.length; ++i) {
 			var l = links[i]
 			this.linkStatus.push([l, l]);
 		}
@@ -317,7 +337,7 @@ class HackingPuzzle {
 		var firstIdx = 2;
 		baseIDX = 2
 		
-		for (var i = 0; i < NUM_HEX - 1; i++) {
+		for (var i = 0; i < NUM_HEX - 1; ++i) {
 			// link index for each hex, -1 means on outside (no link)
 			var hexIdx = [-1, -1, -1, -1, -1, -1];
 			hexIdx[firstIdx % HEX_SIZE] = baseIDX % NUM_LINKS;
@@ -348,7 +368,7 @@ class HackingPuzzle {
 		// final hex:
 		var hexIdx = [1, 3, 5, 7, 9, 11];
 		var idxVals: boolean[] = [];
-		for (var j = 0; j < HEX_SIZE; j++) {
+		for (var j = 0; j < HEX_SIZE; ++j) {
 			idxVals.push(links[hexIdx[j]]);		
 		}
 		this.hexes.push(new Hex(6, hexIdx, idxVals));
@@ -360,7 +380,7 @@ class HackingPuzzle {
 
 	verify(): boolean {
 		var correct = true;
-		for (var i = 0; i < this.linkStatus.length; i++) {
+		for (var i = 0; i < this.linkStatus.length; ++i) {
 			correct = correct && (this.linkStatus[i][0] == this.linkStatus[i][1]);
 		}
 		return correct;
@@ -370,6 +390,15 @@ class HackingPuzzle {
 	startPing(currentTime: number) {
 		if (this.selected !== -1) {
 			this.ping = new EaseScalar(0.0, 1.0, currentTime, currentTime + PING_DURATION);
+		}
+	}
+
+	startWinAnimation(currentTime: number) {
+		for (var i = 0; i < this.hexes.length; ++i) {
+			let o = this.translations[i];
+			//let tgt = vec3.create();
+			//vec3.scale(tgt, src, 2.5);
+			this.hexes[i].startAnimateOffset(currentTime, vec3.create(), o, WIN_DURATION);
 		}
 	}
 
@@ -393,8 +422,7 @@ class HackingPuzzle {
 			var bestIdx = -1;
 
 			for (var i = 0; i < this.translations.length; i++) {
-				var tra = vec3.create();
-				mat4.getTranslation(tra, this.translations[i]);
+				var tra = this.translations[i];
 				var dx = res[0] - tra[0];
 				var dy = res[1] - tra[1];
 				var dist = Math.sqrt(dx * dx + dy * dy);
