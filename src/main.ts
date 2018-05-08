@@ -263,18 +263,10 @@ function main() {
       ctx2d.fillText("Press Enter / Return to restart.", 100, 250);
 
     }
-
     
-    bgm.volume = Math.max(0.05, Math.min(1.0, 1.0 + timer.remainingTime / 10.0)); 
-    // Tell the browser to call `tick` again whenever it renders a new frame
-    frame++;
-    //if (state == GameStates.ongoing) {
-    requestAnimationFrame(tick);
-    //} 
-    // setTimeout(tick, 1000);
-    //if (timer.expired()) state = GameStates.ending;
-
-    
+    bgm.volume = Math.max(0.1, Math.min(1.0, 1.0 + timer.remainingTime / 10.0)); 
+    frame++; // currently unused
+    requestAnimationFrame(tick);   
   }
 
   window.addEventListener('resize', function() {
@@ -334,6 +326,8 @@ function main() {
     bgm.play();
     bgm.volume = 1.0;
     score = 0;
+    hp = hpBackup;
+    hpBackup = new HackingPuzzle();
   }
 
   function switchPuzzles() {
