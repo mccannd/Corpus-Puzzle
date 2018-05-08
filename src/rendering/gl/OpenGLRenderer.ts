@@ -542,6 +542,32 @@ class OpenGLRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  renderPuzzleBG(camera: Camera, prog: ShaderProgram) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[0]);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);  
+
+    let view = camera.viewMatrix;
+    let proj = camera.projectionMatrix;
+
+    let m = mat4.create();
+    let t = mat4.create();
+    mat4.fromTranslation(t, vec3.fromValues(0, 0, -0.1));
+    mat4.fromScaling(m, vec3.fromValues(3.8, 3.8, 3.8));
+    mat4.multiply(m, t, m);
+
+    prog.setFloatUniform('u_alpha', 1.0);
+    prog.setViewMatrix(view);
+    prog.setProjMatrix(proj);
+    prog.setTime(this.currentTime);
+    prog.setModelMatrix(m);
+
+    prog.draw(puzzleQuad);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
 };
 
 export default OpenGLRenderer;

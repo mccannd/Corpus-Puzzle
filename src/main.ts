@@ -30,6 +30,7 @@ let tex0: Texture;
 let tex1: Texture;
 let tex2: Texture;
 let tex3: Texture;
+let texBG: Texture;
 
 let puzzleSpriteSheet: Texture;
 
@@ -90,6 +91,7 @@ function loadScene() {
   tex1 = new Texture('./src/resources/textures/sgrassPBR.png');
   tex2 = new Texture('./src/resources/textures/testing.png');
   tex3 = new Texture('./src/resources/textures/sgrassNor.png');
+  texBG = new Texture('./src/resources/textures/puzzleBG.png');
 
   puzzleSpriteSheet = new Texture('./src/resources/textures/puzzleSprites_channels.png');
 
@@ -140,7 +142,7 @@ function main() {
   // Initial call to load scene
   loadScene();
 
-  const camera = new Camera(vec3.fromValues(4, 0, 7), vec3.fromValues(0, 0, 0));
+  const camera = new Camera(vec3.fromValues(6, 2, 10), vec3.fromValues(0, 0, 0));
   camera.update();
   camera.updateFixed(0.0, 0.0);
 
@@ -155,6 +157,11 @@ function main() {
 
   const puzzleShader = new ShaderProgram([
     new Shader(gl.VERTEX_SHADER, require('./shaders/sprite-vert.glsl')),
+    new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
+    ]);
+
+  const puzzleBGShader = new ShaderProgram([
+    new Shader(gl.VERTEX_SHADER, require('./shaders/standard-vert.glsl')),
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
     ]);
 
@@ -187,6 +194,9 @@ function main() {
   puzzleShader.setupTexUnits(["tex_Color"]);
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
   puzzleShader.setupFloatUnits(["u_highlight", "u_alpha"]);
+
+  puzzleBGShader.setupTexUnits(["tex_Color"]);
+  puzzleBGShader.setupFloatUnits(["u_alpha"]);
 
   hp = new HackingPuzzle();
   hpBackup = new HackingPuzzle(); // switched upon win with old
@@ -230,6 +240,8 @@ function main() {
       
       renderer.updateTime(timer.deltaTime, timer.currentTime);
 
+
+
       standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
       standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
       standardDeferred.bindTexToUnit("tex_Emissive", tex2, 2);
@@ -241,6 +253,9 @@ function main() {
       renderer.renderToGBuffer(camera, standardDeferred, [mesh0]);
       renderer.renderFromGBuffer(camera);
       renderer.renderPostProcessHDR();
+
+      puzzleBGShader.bindTexToUnit("tex_Color", texBG, 0);
+      renderer.renderPuzzleBG(camera, puzzleBGShader);
 
       // make a better unified translucency pass
       puzzleShader.bindTexToUnit("tex_Color", puzzleSpriteSheet, 0);
@@ -328,6 +343,7 @@ function main() {
     score = 0;
     hp = hpBackup;
     hpBackup = new HackingPuzzle();
+    hp.startIntroAnimation(timer.currentTime);
   }
 
   function switchPuzzles() {
