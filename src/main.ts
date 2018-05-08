@@ -43,6 +43,14 @@ let state = GameStates.starting;
 
 let bgm = new Audio('./src/resources/sounds/WARFRAME OST March Of The Moa.mp3');
 
+const instructions0 = "Finish each puzzle by connecting the internal circuits.";
+const instructions1 = "Rotate each component by left or right clicking.";
+const instructions2 = "You have 60 seconds to finish as many as you can."; 
+const instructions3 = "Press Enter / Return to start.";
+
+const endPrefix = "You completed ";
+const endSuffix = " puzzles. Press Enter / Return to restart.";
+
 let timer = {
   deltaTime: 0.0,
   startTime: 0.0,
@@ -61,7 +69,7 @@ let timer = {
 };
 
 
-
+let textColor = "#f7e9a5";
 
 function loadOBJText() {
   obj0 = readTextFile('./src/resources/obj/lopolyLessCheek2.obj')
@@ -90,7 +98,7 @@ function loadScene() {
 function refreshText(c: HTMLCanvasElement) {
   let ctx = c.getContext("2d");
   ctx.fillStyle = "#f7e9a5";
-  ctx.font = "30px Lato";
+  ctx.font = "24px Lato";
   return ctx;
 }
 
@@ -186,60 +194,83 @@ function main() {
   // This function will be called every frame
   let frame = 0;
   function tick() {
-    //camera.updateFixed();
-    //stats.begin();
-    ctx2d.clearRect(0, 0, 500, 500);
-
-    if (!fixedCamera) {
-      camera.update();
-    }
-
-    gl.viewport(0, 0, window.innerWidth, window.innerHeight);
-
-    if (hp.verify()) {
-      //switchPuzzles();
-      hp.lockInteraction(timer.currentTime);
-      hp.startWinAnimation(timer.currentTime);
-      score += 1;
-    }
-
-    if (hp.isDead(timer.currentTime)) {
-      switchPuzzles();
-    }
 
     timer.updateTime();
-    renderer.updateTime(timer.deltaTime, timer.currentTime);
 
-    standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
-    standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
-    standardDeferred.bindTexToUnit("tex_Emissive", tex2, 2);
-    standardDeferred.bindTexToUnit("tex_Nor", tex3, 3);
+    if (state == GameStates.starting) {
+      ctx2d.fillStyle = "black";
+      ctx2d.beginPath()
+      ctx2d.rect(0, 0, window.innerWidth, window.innerHeight);
+      ctx2d.fill();
+      ctx2d.fillStyle = textColor;
+      ctx2d.fillText(instructions0, 100, 200);
+      ctx2d.fillText(instructions1, 100, 250);
+      ctx2d.fillText(instructions2, 100, 300);
+      ctx2d.fillText(instructions3, 100, 350);
+
+    } else if (state == GameStates.ongoing) {
+      ctx2d.clearRect(0, 0, 500, 500);
+      if (!fixedCamera) {
+        camera.update();
+      }
+
+      gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+
+      if (hp.verify()) {
+        //switchPuzzles();
+        hp.lockInteraction(timer.currentTime);
+        hp.startWinAnimation(timer.currentTime);
+        score += 1;
+      }
+
+      if (hp.isDead(timer.currentTime)) {
+        switchPuzzles();
+      }
+
+      
+      renderer.updateTime(timer.deltaTime, timer.currentTime);
+
+      standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
+      standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
+      standardDeferred.bindTexToUnit("tex_Emissive", tex2, 2);
+      standardDeferred.bindTexToUnit("tex_Nor", tex3, 3);
+      
+
+      renderer.clear();
+      renderer.clearGB();
+      renderer.renderToGBuffer(camera, standardDeferred, [mesh0]);
+      renderer.renderFromGBuffer(camera);
+      renderer.renderPostProcessHDR();
+
+      // make a better unified translucency pass
+      puzzleShader.bindTexToUnit("tex_Color", puzzleSpriteSheet, 0);
+      renderer.renderPuzzle(hp, camera, puzzleShader);
+
+      renderer.renderToneMap();
+      renderer.renderPostProcessLDR();
+
+      ctx2d.fillText((timer.remainingTime).toFixed(1).toString(), 100, 100);
+      ctx2d.fillText(score.toString(), 100, 200);
+
+      if (timer.expired()) {
+        // end it all
+        state = GameStates.ending;
+      }
+
+    } else if (state == GameStates.ending) {
+      ctx2d.clearRect(0, 0, 500, 500);
+      ctx2d.fillText("You completed " + score + " puzzles.", 100, 200);     
+      ctx2d.fillText("Press Enter / Return to restart.", 100, 250);
+
+    }
+
     
-
-    renderer.clear();
-    renderer.clearGB();
-    renderer.renderToGBuffer(camera, standardDeferred, [mesh0]);
-    renderer.renderFromGBuffer(camera);
-    renderer.renderPostProcessHDR();
-
-    // make a better unified translucency pass
-    puzzleShader.bindTexToUnit("tex_Color", puzzleSpriteSheet, 0);
-    renderer.renderPuzzle(hp, camera, puzzleShader);
-
-    renderer.renderToneMap();
-    renderer.renderPostProcessLDR();
-
-    ctx2d.fillText((timer.remainingTime).toFixed(1).toString(), 100, 100);
-    ctx2d.fillText(score.toString(), 100, 200);
-    //ctx2d.strokeText("A B C D", 0, 100);
-    //ctx2d.fillRect(0, 0, 50, 50);
-    //ctx2d.fillRect(0, 0, 200, 500);
-
+    bgm.volume = Math.max(0.05, Math.min(1.0, 1.0 + timer.remainingTime / 10.0)); 
     // Tell the browser to call `tick` again whenever it renders a new frame
     frame++;
-    if (state == GameStates.ongoing) {
-      requestAnimationFrame(tick);
-    } 
+    //if (state == GameStates.ongoing) {
+    requestAnimationFrame(tick);
+    //} 
     // setTimeout(tick, 1000);
     //if (timer.expired()) state = GameStates.ending;
 
@@ -283,6 +314,13 @@ function main() {
     return false;
   }, false);
 
+  window.addEventListener('keydown', function(evt) {
+    if (state == GameStates.ongoing) return;
+    if (evt.keyCode == 13) beginGame();
+    ctx2d.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    return false;
+  }, false);
+
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.setAspectRatio(window.innerWidth / window.innerHeight);
   camera.updateProjectionMatrix();
@@ -291,8 +329,11 @@ function main() {
     timer.remainingTime = 60.0;
 
     state = GameStates.ongoing;
-    tick();
+    //tick();
+    bgm.currentTime = 0;
     bgm.play();
+    bgm.volume = 1.0;
+    score = 0;
   }
 
   function switchPuzzles() {
@@ -303,13 +344,8 @@ function main() {
 
   // Start the render loop
   
-  beginGame();
+  tick();
 }
-
-
-
-
-
 
 
 function setup() {
