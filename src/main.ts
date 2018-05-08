@@ -72,8 +72,6 @@ function loadScene() {
   square && square.destroy();
   mesh0 && mesh0.destroy();
 
-
-
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
 
@@ -83,12 +81,19 @@ function loadScene() {
   tex0 = new Texture('./src/resources/textures/sgrassCol.png');
   tex1 = new Texture('./src/resources/textures/sgrassPBR.png');
   tex2 = new Texture('./src/resources/textures/testing.png');
-
   tex3 = new Texture('./src/resources/textures/sgrassNor.png');
+
   puzzleSpriteSheet = new Texture('./src/resources/textures/puzzleSprites_channels.png');
 
 }
 
+function refreshText(c: HTMLCanvasElement) {
+  let ctx = c.getContext("2d");
+  ctx.fillStyle = "#435a6b";
+  ctx.font = "30px Verdana";
+  ctx.strokeStyle = 'blue';
+  return ctx;
+}
 
 function main() {
   bgm.volume = 0.0;
@@ -115,6 +120,11 @@ function main() {
   if (!gl) {
     alert('WebGL 2 not supported!');
   }
+  const canvas2d = <HTMLCanvasElement> document.getElementById("overlay");
+  canvas2d.height = window.innerHeight;
+  canvas2d.width =  window.innerWidth;
+  let ctx2d = refreshText(canvas2d);
+
   // `setGL` is a function imported above which sets the value of `gl` in the `globals.ts` module.
   // Later, we can import `gl` from `globals.ts` to access it
   setGL(gl);
@@ -178,6 +188,8 @@ function main() {
   function tick() {
     //camera.updateFixed();
     //stats.begin();
+    ctx2d.clearRect(0, 0, 500, 500);
+
     if (!fixedCamera) {
       camera.update();
     }
@@ -204,6 +216,11 @@ function main() {
     renderer.renderToneMap();
     renderer.renderPostProcessLDR();
 
+    ctx2d.fillText("Scoopidy Woop", 0, 100);
+    //ctx2d.strokeText("A B C D", 0, 100);
+    //ctx2d.fillRect(0, 0, 50, 50);
+    //ctx2d.fillRect(0, 0, 200, 500);
+
     // Tell the browser to call `tick` again whenever it renders a new frame
     frame++;
     if (state == GameStates.ongoing) {
@@ -211,12 +228,17 @@ function main() {
     } 
     // setTimeout(tick, 1000);
     //if (timer.expired()) state = GameStates.ending;
+
+    
   }
 
   window.addEventListener('resize', function() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.setAspectRatio(window.innerWidth / window.innerHeight);
     camera.updateProjectionMatrix();
+    canvas2d.height = window.innerHeight;
+    canvas2d.width = window.innerWidth;
+    refreshText(canvas2d)
   }, false);
 
   window.addEventListener('mousemove', function(evt) {
