@@ -45,6 +45,17 @@ class EaseVector {
 		return v;
 	}
 
+	getQuad(currentTime: number): vec3 {
+		var t = normalize(currentTime, this.t0, this.t1);
+		//t = Math.pow(t, 1.5);
+		t = t * t * (3.0 - 2.0 * t);
+		//t = t * t;
+		t = 2.0 * t * t - 1.0 * t;
+		var v = vec3.create();
+		vec3.lerp(v, this.v0, this.v1, t);
+		return v;
+	}
+
 }
 
 class EaseScalar {

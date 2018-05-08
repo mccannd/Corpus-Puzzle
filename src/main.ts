@@ -106,12 +106,12 @@ function main() {
   // document.body.appendChild(stats.domElement);
 
   // Add controls to the gui
-  const gui = new DAT.GUI();
-  var focusSlider0 = gui.add(controls, 'depthFocusNear', 0.1, 50.0).step(0.1).listen();
-  var focusSlider1 = gui.add(controls, 'depthFocusFar', 0.1, 50.0).step(0.1).listen();
-  var focusSlider2 = gui.add(controls, 'depthRadiusNear', 0.1, 20.0).step(0.1);
-  var focusSlider3 = gui.add(controls, 'depthRadiusFar', 0.1, 20.0).step(0.1);
-  var bloomSlider0 = gui.add(controls, 'bloomThreshold', 0.1, 20.0).step(0.1);
+  // const gui = new DAT.GUI();
+  // var focusSlider0 = gui.add(controls, 'depthFocusNear', 0.1, 50.0).step(0.1).listen();
+  // var focusSlider1 = gui.add(controls, 'depthFocusFar', 0.1, 50.0).step(0.1).listen();
+  // var focusSlider2 = gui.add(controls, 'depthRadiusNear', 0.1, 20.0).step(0.1);
+  // var focusSlider3 = gui.add(controls, 'depthRadiusFar', 0.1, 20.0).step(0.1);
+  // var bloomSlider0 = gui.add(controls, 'bloomThreshold', 0.1, 20.0).step(0.1);
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -150,27 +150,27 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
     ]);
 
-  focusSlider0.onChange(function(value: number) {
-    if (controls.depthFocusFar < value) controls.depthFocusFar = value;
-    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  });
+  // focusSlider0.onChange(function(value: number) {
+  //   if (controls.depthFocusFar < value) controls.depthFocusFar = value;
+  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  // });
 
-  focusSlider1.onChange(function(value: number) {
-    if (controls.depthFocusNear > value) controls.depthFocusNear = value;
-    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  });
+  // focusSlider1.onChange(function(value: number) {
+  //   if (controls.depthFocusNear > value) controls.depthFocusNear = value;
+  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  // });
 
-  focusSlider2.onChange(function(value: number) {
-    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  });
+  // focusSlider2.onChange(function(value: number) {
+  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  // });
 
-  focusSlider3.onChange(function(value: number) {
-    renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  });
+  // focusSlider3.onChange(function(value: number) {
+  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
+  // });
 
-  bloomSlider0.onChange(function(value: number) {
-    renderer.setBloomThreshold(value);
-  });
+  // bloomSlider0.onChange(function(value: number) {
+  //   renderer.setBloomThreshold(value);
+  // });
 
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo", "tex_Emissive", "tex_Nor"]);
   standardDeferred.setupFloatUnits(["u_emissiveStrength"]);
@@ -178,7 +178,7 @@ function main() {
 
   puzzleShader.setupTexUnits(["tex_Color"]);
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
-  puzzleShader.setupFloatUnits(["u_highlight"]);
+  puzzleShader.setupFloatUnits(["u_highlight", "u_alpha"]);
 
   hp = new HackingPuzzle();
   hpBackup = new HackingPuzzle(); // switched upon win with old
@@ -199,6 +199,7 @@ function main() {
     if (hp.verify()) {
       //switchPuzzles();
       hp.lockInteraction(timer.currentTime);
+      hp.startWinAnimation(timer.currentTime);
       score += 1;
     }
 
@@ -297,6 +298,7 @@ function main() {
   function switchPuzzles() {
     hp = hpBackup;
     hpBackup = new HackingPuzzle();
+    hp.startIntroAnimation(timer.currentTime);
   }
 
   // Start the render loop

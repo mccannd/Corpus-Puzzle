@@ -467,44 +467,6 @@ class OpenGLRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[0]);
     this.additive.draw();
 
-    // let i = 0;
-    // for (i = 0; i < this.post32Passes.length; i++){
-    //   // pingpong framebuffers for each pass
-    //   // after last pass, will be tonemapped
-    //   gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[(i + 1) % 2]);
-     
-    //   gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    //   gl.disable(gl.DEPTH_TEST);
-    //   gl.enable(gl.BLEND);
-    //   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    //   gl.activeTexture(gl.TEXTURE0);
-    //   gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[(i) % 2]);
-
-    //   this.post32Passes[i].draw();
-
-    //   //console.log(i);
-    //   // bind default
-    //   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    // }
-
-    // apply tonemapping
-    // if (this.post8Passes.length > 0) gl.bindFramebuffer(gl.FRAMEBUFFER, this.post8Buffers[0]);
-    // else gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-     
-    // gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-
-    // gl.disable(gl.DEPTH_TEST);
-    // gl.enable(gl.BLEND);
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // gl.activeTexture(gl.TEXTURE0);
-    // // bound texture is the last one processed before
-
-    // gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[Math.max(0, i) % 2]);
-
-    // this.tonemapPass.draw();
-
   }
 
   renderToneMap() {
@@ -561,9 +523,11 @@ class OpenGLRenderer {
 
     let view = camera.viewMatrix;
     let proj = camera.projectionMatrix;
-
+    let alpha = hp.drawAlpha(this.currentTime);
+    prog.setFloatUniform('u_alpha', alpha);
     prog.setViewMatrix(view);
     prog.setProjMatrix(proj);
+    prog.setTime(this.currentTime);
 
     for (var i = 0; i < 7; i++) {
       prog.setModelMatrix(t[i]);

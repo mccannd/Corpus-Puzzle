@@ -17,7 +17,7 @@ const OFFSET_6: number = 12;
 
 const TURN_DURATION: number = 0.2;
 const PING_DURATION: number = 0.2;
-const WIN_DURATION: number = 0.5;
+const WIN_DURATION: number = 1.0;
 
 type IdxLink = [number, boolean];
 
@@ -174,7 +174,7 @@ class Hex {
 	getImageType() : number { return this.imageType; }
 	getOffset() : number { return this.cwOffset; }
 	getRotation(currentTime: number) : number { return this.currentRotation.getPower(currentTime, 1.7); }
-	getTranslation(currentTime: number) : vec3 { return this.currentTranslation.getSmooth(currentTime); }
+	getTranslation(currentTime: number) : vec3 { return this.currentTranslation.getQuad(currentTime); }
 }
 
 const linkToHex: number[][] = [[0, 5], [0, 6], [0, 1], [1, 6], [1, 2], [2, 6], [2, 3], [3, 6], [3, 4], [4, 6], [4, 5], [5, 6]];
@@ -195,12 +195,14 @@ class HackingPuzzle {
 
 	interactionLocked : boolean = false;
 	lockTime: number;
+	alpha: EaseScalar;
 
 	constructor() {	
 		this.generatePuzzle();
 		this.selected = -1;
 		this.translations = [];
 		this.ping = new EaseScalar(0, 0, 0, 0);
+		this.alpha = new EaseScalar(1, 1, 0, 0);
 
 		let radius = 1.9;
 		for (var i = 0; i < 6; i++) {
@@ -259,6 +261,10 @@ class HackingPuzzle {
 
 	drawClickPing(currentTime: number) {
 		return this.ping.getLinear(currentTime);
+	}
+
+	drawAlpha(currentTime: number) {
+		return this.alpha.getPower(currentTime, 2.0);
 	}
 
 	updateLinks(udl: IdxLink[], hexIdx: number) {
@@ -406,11 +412,18 @@ class HackingPuzzle {
 	}
 
 	startWinAnimation(currentTime: number) {
+		this.alpha = new EaseScalar(1, 0, currentTime, currentTime + WIN_DURATION);
 		for (var i = 0; i < this.hexes.length; ++i) {
 			let o = this.translations[i];
-			//let tgt = vec3.create();
-			//vec3.scale(tgt, src, 2.5);
 			this.hexes[i].startAnimateOffset(currentTime, vec3.create(), o, WIN_DURATION);
+		}
+	}
+
+	startIntroAnimation(currentTime: number) {
+		this.alpha = new EaseScalar(0, 1, currentTime, currentTime + WIN_DURATION);
+		for (var i = 0; i < this.hexes.length; ++i) {
+			let o = vec3.fromValues(0, 0, -0.2);
+			this.hexes[i].startAnimateOffset(currentTime, o, vec3.create(), WIN_DURATION);
 		}
 	}
 
