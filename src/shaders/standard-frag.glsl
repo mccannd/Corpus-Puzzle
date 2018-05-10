@@ -19,7 +19,6 @@ uniform float u_emissiveStrength;
 
 vec3 applyNormalMap(vec3 geomnor, vec3 normap) {
     normap = normap * 2.0 - 1.0;
-    normap.g *= -1.0;
     vec3 up = fs_vUp.xyz;
     vec3 surftan = normalize(cross(geomnor, up));
     vec3 surfbinor = cross(geomnor, surftan);

@@ -16,5 +16,5 @@ void main() {
 	// base color
 	vec3 col = pow(vec3(pow(cs.r, 2.2)), vec3(2.4, 0.75, 0.62));
 	col += vec3(2.3, 2.3, 2.0) * u_highlight * vec3(cs.g) * (1.25 + 0.75 * sin(u_Time * 6.28));
-	out_Col = vec4(col, cs.a * u_alpha);
+	out_Col = vec4(col * u_alpha, cs.a * u_alpha);
 }

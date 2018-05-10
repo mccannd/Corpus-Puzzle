@@ -1,4 +1,4 @@
-import {vec3} from 'gl-matrix';
+import {vec3, mat4} from 'gl-matrix';
 import * as Stats from 'stats-js';
 import * as DAT from 'dat-gui';
 import Square from './geometry/Square';
@@ -73,7 +73,7 @@ let timer = {
 let textColor = "#f7e9a5";
 
 function loadOBJText() {
-  obj0 = readTextFile('./src/resources/obj/lopolyLessCheek2.obj')
+  obj0 = readTextFile('./src/resources/obj/combinedScreenpanel.obj')
 
 }
 
@@ -87,10 +87,10 @@ function loadScene() {
   mesh0 = new Mesh(obj0, vec3.fromValues(0, 0, 0));
   mesh0.create();
 
-  tex0 = new Texture('./src/resources/textures/sgrassCol.png');
-  tex1 = new Texture('./src/resources/textures/sgrassPBR.png');
-  tex2 = new Texture('./src/resources/textures/testing.png');
-  tex3 = new Texture('./src/resources/textures/sgrassNor.png');
+  tex0 = new Texture('./src/resources/textures/Panel_base.png');
+  tex1 = new Texture('./src/resources/textures/Panel_pbr.png');
+  tex2 = new Texture('./src/resources/textures/Panel_emi.png');
+  tex3 = new Texture('./src/resources/textures/Panel_nor.png');
   texBG = new Texture('./src/resources/textures/puzzleBG.png');
 
   puzzleSpriteSheet = new Texture('./src/resources/textures/puzzleSprites_channels.png');
@@ -189,7 +189,7 @@ function main() {
 
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo", "tex_Emissive", "tex_Nor"]);
   standardDeferred.setupFloatUnits(["u_emissiveStrength"]);
-  standardDeferred.setFloatUniform("u_emissiveStrength", 2.0);
+  standardDeferred.setFloatUniform("u_emissiveStrength", 0.5);
 
   puzzleShader.setupTexUnits(["tex_Color"]);
   puzzleShader.setupIntUnits(["u_spriteFrame"]);
@@ -201,6 +201,11 @@ function main() {
   hp = new HackingPuzzle();
   hpBackup = new HackingPuzzle(); // switched upon win with old
 
+  let panelSRT = mat4.create();
+  let panelT = mat4.create();
+  mat4.fromTranslation(panelT, vec3.fromValues(0, -0.75, -4));
+  mat4.fromXRotation(panelSRT, Math.PI * 0.5);
+  mat4.multiply(panelSRT, panelT, panelSRT);
   // This function will be called every frame
   let frame = 0;
   function tick() {
@@ -250,7 +255,7 @@ function main() {
 
       renderer.clear();
       renderer.clearGB();
-      renderer.renderToGBuffer(camera, standardDeferred, [mesh0]);
+      renderer.renderToGBuffer(camera, standardDeferred, [mesh0], [panelSRT]);
       renderer.renderFromGBuffer(camera);
       renderer.renderPostProcessHDR();
 

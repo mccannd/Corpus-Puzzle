@@ -1,5 +1,6 @@
 import {mat4, vec4, vec3, vec2} from 'gl-matrix';
 import Drawable from './Drawable';
+import Texture from './Texture'
 import Camera from '../../Camera';
 import {gl} from '../../globals';
 import ShaderProgram, {Shader} from './ShaderProgram';
@@ -8,6 +9,9 @@ import Square from '../../geometry/Square';
 import HackingPuzzle from '../../game/HackingPuzzle'
 
 let puzzleQuad: Square;
+
+let environment: Texture;
+let brdf: Texture;
 
 class OpenGLRenderer {
   blurDivisor: number = 4;
@@ -79,6 +83,10 @@ class OpenGLRenderer {
 
 
   constructor(public canvas: HTMLCanvasElement) {
+
+    brdf = new Texture('./src/resources/textures/brdfLUT.png');
+    environment = new Texture('./src/resources/textures/environment_hacky2.png');
+
     this.currentTime = 0.0;
     this.gbTargets = [undefined, undefined, undefined, undefined];
     this.post8Buffers = [undefined, undefined];
@@ -114,6 +122,8 @@ class OpenGLRenderer {
     gl.uniform1i(gb2loc, 2);
     gl.uniform1i(gb3loc, 3);
 
+    this.deferredShader.setupTexUnits(['tex_BRDF', 'tex_env']);
+
     puzzleQuad = new Square(vec3.fromValues(0, 0, 0));
     puzzleQuad.create();
 
@@ -122,8 +132,8 @@ class OpenGLRenderer {
     this.dofSeparator.use();
     gl.uniform1i(dofSepLoc, 1);
     this.dofSeparator.setupFloatUnits(["u_focusDistNear", "u_focusDistFar", "u_focusRadNear", "u_focusRadFar"]);
-    this.dofSeparator.setFloatUniform("u_focusDistNear", 5.0);
-    this.dofSeparator.setFloatUniform("u_focusDistFar", 6.0);
+    this.dofSeparator.setFloatUniform("u_focusDistNear", 10.0);
+    this.dofSeparator.setFloatUniform("u_focusDistFar", 20.0);
     this.dofSeparator.setFloatUniform("u_focusRadNear", 3.0);
     this.dofSeparator.setFloatUniform("u_focusRadFar", 3.0);
     
@@ -142,7 +152,7 @@ class OpenGLRenderer {
     this.dofHorizPass.setupFloatUnits(["alphaBlur"]);
     this.highpass.setupFloatUnits(["u_Threshold"]);
 
-    this.highpass.setFloatUniform("u_Threshold", 1.0);
+    this.highpass.setFloatUniform("u_Threshold", 2.0);
   }
 
 
@@ -165,8 +175,8 @@ class OpenGLRenderer {
     for (let i = 0; i < 4; i ++) {
       this.gbTargets[i] = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, this.gbTargets[i]);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     
@@ -203,8 +213,8 @@ class OpenGLRenderer {
 
       this.post8Targets[i] = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, this.post8Targets[i]);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); 
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -315,38 +325,28 @@ class OpenGLRenderer {
   }  
 
 
-  renderToGBuffer(camera: Camera, gbProg: ShaderProgram, drawables: Array<Drawable>) {
+  renderToGBuffer(camera: Camera, gbProg: ShaderProgram, drawables: Array<Drawable>, transforms: Array<mat4>) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.enable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
 
-    let model = mat4.create();
+
     let viewProj = mat4.create();
     let view = camera.viewMatrix;
     let proj = camera.projectionMatrix;
     let color = vec4.fromValues(0.5, 0.5, 0.5, 1);
    
-    let ry = mat4.create();
-    let sc = mat4.create();
-    mat4.fromScaling(sc, vec3.fromValues(3.0, 3.0, 3.0));
-    mat4.fromYRotation(ry, Math.PI);
-    mat4.fromTranslation(model, vec3.fromValues(0, 1.5, -4.0));
-    mat4.multiply(ry, sc, ry);
-    mat4.multiply(model, model, ry);
-    //mat4.identity(model);
-    mat4.multiply(viewProj, camera.projectionMatrix, camera.viewMatrix);
-    gbProg.setModelMatrix(model);
     gbProg.setViewProjMatrix(viewProj);
     gbProg.setGeometryColor(color);
     gbProg.setViewMatrix(view);
     gbProg.setProjMatrix(proj);
 
-
     gbProg.setTime(this.currentTime);
 
-    for (let drawable of drawables) {
-      gbProg.draw(drawable);
+    for (var i = 0; i < drawables.length; i++) {
+      gbProg.setModelMatrix(transforms[i]);
+      gbProg.draw(drawables[i]);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -369,10 +369,14 @@ class OpenGLRenderer {
     this.deferredShader.setFloatUniform('u_tanAlpha', frustumInfo[0])
     this.deferredShader.setFloatUniform('u_aspect', frustumInfo[1]);
 
+
     for (let i = 0; i < 4; i ++) {
       gl.activeTexture(gl.TEXTURE0 + i);
       gl.bindTexture(gl.TEXTURE_2D, this.gbTargets[i]);     
     }
+
+    this.deferredShader.bindTexToUnit("tex_BRDF", brdf, 5);
+    this.deferredShader.bindTexToUnit("tex_env", environment, 6);
 
     this.deferredShader.draw();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -444,19 +448,39 @@ class OpenGLRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[1]);
     this.highpass.draw();
 
-    this.dofHorizPass.setFloatUniform('alphaBlur', 0.0);   
-    this.dofVertPass.setFloatUniform('alphaBlur', 0.0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[1]);
-    this.dofHorizPass.use();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[0]);
-    this.dofHorizPass.draw();
+    for (var blurs = 0; blurs < 2; blurs++) {
+      this.dofHorizPass.setFloatUniform('alphaBlur', 0.0);   
+      this.dofVertPass.setFloatUniform('alphaBlur', 0.0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[1]);
+      this.dofHorizPass.use();
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[0]);
+      this.dofHorizPass.draw();
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[0]);
-    this.dofVertPass.use();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[1]);
-    this.dofVertPass.draw();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[0]);
+      this.dofVertPass.use();
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[1]);
+      this.dofVertPass.draw();
+    }
+
+    for (var blurs = 0; blurs < 2; blurs++) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[1]);
+      this.dofHorizPass.use();
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[0]);
+      this.dofHorizPass.draw();
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurBuffers[0]);
+      this.dofHorizPass.use();
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.blurTargets[1]);
+      this.dofHorizPass.draw();
+    }
+
+
+
+
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[0]);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -516,7 +540,9 @@ class OpenGLRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[0]);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+    gl.blendFunc(gl.ONE, gl.ONE);
     let t: mat4[] = hp.drawMatrices(this.currentTime);
     let frames: number[] = hp.drawImageTypes();
     let highlightIdx: number = hp.drawHighlightIndex();
