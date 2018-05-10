@@ -132,9 +132,9 @@ class OpenGLRenderer {
     this.dofSeparator.use();
     gl.uniform1i(dofSepLoc, 1);
     this.dofSeparator.setupFloatUnits(["u_focusDistNear", "u_focusDistFar", "u_focusRadNear", "u_focusRadFar"]);
-    this.dofSeparator.setFloatUniform("u_focusDistNear", 10.0);
-    this.dofSeparator.setFloatUniform("u_focusDistFar", 20.0);
-    this.dofSeparator.setFloatUniform("u_focusRadNear", 3.0);
+    this.dofSeparator.setFloatUniform("u_focusDistNear", 15.0);
+    this.dofSeparator.setFloatUniform("u_focusDistFar", 16.0);
+    this.dofSeparator.setFloatUniform("u_focusRadNear", 5.0);
     this.dofSeparator.setFloatUniform("u_focusRadFar", 3.0);
     
 

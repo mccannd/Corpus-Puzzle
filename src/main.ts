@@ -24,12 +24,20 @@ const controls = {
 let square: Square;
 
 let obj0: string;
+let obj1: string;
 let mesh0: Mesh;
+let mesh1: Mesh;
 
 let tex0: Texture;
 let tex1: Texture;
 let tex2: Texture;
 let tex3: Texture;
+
+let texs0: Texture;
+let texs1: Texture;
+let texs2: Texture;
+let texs3: Texture;
+
 let texBG: Texture;
 
 let puzzleSpriteSheet: Texture;
@@ -74,12 +82,14 @@ let textColor = "#f7e9a5";
 
 function loadOBJText() {
   obj0 = readTextFile('./src/resources/obj/combinedScreenpanel.obj')
-
+  obj1 = readTextFile('./src/resources/obj/consoleside.obj')
 }
 
 function loadScene() {
   square && square.destroy();
   mesh0 && mesh0.destroy();
+
+  mesh1 && mesh1.destroy();
 
   square = new Square(vec3.fromValues(0, 0, 0));
   square.create();
@@ -87,10 +97,19 @@ function loadScene() {
   mesh0 = new Mesh(obj0, vec3.fromValues(0, 0, 0));
   mesh0.create();
 
+  mesh1 = new Mesh(obj1, vec3.fromValues(0, 0, 0));
+  mesh1.create();
+
   tex0 = new Texture('./src/resources/textures/Panel_base.png');
   tex1 = new Texture('./src/resources/textures/Panel_pbr.png');
   tex2 = new Texture('./src/resources/textures/Panel_emi.png');
   tex3 = new Texture('./src/resources/textures/Panel_nor.png');
+
+  texs0 = new Texture('./src/resources/textures/Side_base.png');
+  texs1 = new Texture('./src/resources/textures/Side_pbr.png');
+  texs2 = new Texture('./src/resources/textures/Side_emi.png');
+  texs3 = new Texture('./src/resources/textures/Side_nor.png');
+
   texBG = new Texture('./src/resources/textures/puzzleBG.png');
 
   puzzleSpriteSheet = new Texture('./src/resources/textures/puzzleSprites_channels.png');
@@ -107,22 +126,6 @@ function refreshText(c: HTMLCanvasElement) {
 function main() {
   bgm.volume = 0.0;
 
-  // Initial display for framerate
-  // const stats = Stats();
-  // stats.setMode(0);
-  // stats.domElement.style.position = 'absolute';
-  // stats.domElement.style.left = '0px';
-  // stats.domElement.style.top = '0px';
-  // document.body.appendChild(stats.domElement);
-
-  // Add controls to the gui
-  // const gui = new DAT.GUI();
-  // var focusSlider0 = gui.add(controls, 'depthFocusNear', 0.1, 50.0).step(0.1).listen();
-  // var focusSlider1 = gui.add(controls, 'depthFocusFar', 0.1, 50.0).step(0.1).listen();
-  // var focusSlider2 = gui.add(controls, 'depthRadiusNear', 0.1, 20.0).step(0.1);
-  // var focusSlider3 = gui.add(controls, 'depthRadiusFar', 0.1, 20.0).step(0.1);
-  // var bloomSlider0 = gui.add(controls, 'bloomThreshold', 0.1, 20.0).step(0.1);
-
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
   const gl = <WebGL2RenderingContext> canvas.getContext('webgl2');
@@ -135,8 +138,6 @@ function main() {
   let ctx2d = refreshText(canvas2d);
   let score = 0;
 
-  // `setGL` is a function imported above which sets the value of `gl` in the `globals.ts` module.
-  // Later, we can import `gl` from `globals.ts` to access it
   setGL(gl);
 
   // Initial call to load scene
@@ -165,27 +166,6 @@ function main() {
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/alphaUnlit-frag.glsl')),
     ]);
 
-  // focusSlider0.onChange(function(value: number) {
-  //   if (controls.depthFocusFar < value) controls.depthFocusFar = value;
-  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  // });
-
-  // focusSlider1.onChange(function(value: number) {
-  //   if (controls.depthFocusNear > value) controls.depthFocusNear = value;
-  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  // });
-
-  // focusSlider2.onChange(function(value: number) {
-  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  // });
-
-  // focusSlider3.onChange(function(value: number) {
-  //   renderer.setDOFFocus(controls.depthFocusNear, controls.depthFocusFar, controls.depthRadiusNear, controls.depthRadiusFar);
-  // });
-
-  // bloomSlider0.onChange(function(value: number) {
-  //   renderer.setBloomThreshold(value);
-  // });
 
   standardDeferred.setupTexUnits(["tex_Color", "tex_PBRInfo", "tex_Emissive", "tex_Nor"]);
   standardDeferred.setupFloatUnits(["u_emissiveStrength"]);
@@ -203,9 +183,31 @@ function main() {
 
   let panelSRT = mat4.create();
   let panelT = mat4.create();
-  mat4.fromTranslation(panelT, vec3.fromValues(0, -0.75, -4));
-  mat4.fromXRotation(panelSRT, Math.PI * 0.5);
+  mat4.fromTranslation(panelT, vec3.fromValues(0, -1, -4));
+  mat4.fromXRotation(panelSRT, Math.PI * 0.5 - 0.2);
   mat4.multiply(panelSRT, panelT, panelSRT);
+
+  let sideSRT = mat4.create();
+  let sideSRT2 = mat4.create();
+  let sideT = mat4.create();
+  let sideT2 = mat4.create();
+  let sideS = mat4.create();
+  mat4.fromScaling(sideS, vec3.fromValues(2.0, 2.0, 2.0));
+  mat4.fromTranslation(sideT, vec3.fromValues(-7, -2, -2));
+  mat4.fromTranslation(sideT2, vec3.fromValues(7, -2, -2));
+  let sideRX = mat4.create();
+  mat4.fromXRotation(sideRX, Math.PI * 0.5);
+  let sideRY = mat4.create();
+  mat4.fromYRotation(sideRY, 0.5);
+  let sideRY2 = mat4.create();
+  mat4.fromYRotation(sideRY2, -0.5);
+
+  mat4.multiply(sideSRT, sideRY, sideRX);
+  mat4.multiply(sideSRT2, sideRY2, sideRX);
+  mat4.multiply(sideSRT, sideS, sideSRT);
+  mat4.multiply(sideSRT2, sideS, sideSRT2);
+  mat4.multiply(sideSRT2, sideT2, sideSRT2);
+  mat4.multiply(sideSRT, sideT, sideSRT);
   // This function will be called every frame
   let frame = 0;
   function tick() {
@@ -241,11 +243,8 @@ function main() {
       if (hp.isDead(timer.currentTime)) {
         switchPuzzles();
       }
-
-      
+     
       renderer.updateTime(timer.deltaTime, timer.currentTime);
-
-
 
       standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
       standardDeferred.bindTexToUnit("tex_PBRInfo", tex1, 1);
@@ -255,7 +254,16 @@ function main() {
 
       renderer.clear();
       renderer.clearGB();
+
       renderer.renderToGBuffer(camera, standardDeferred, [mesh0], [panelSRT]);
+
+      standardDeferred.bindTexToUnit("tex_Color", texs0, 0);
+      standardDeferred.bindTexToUnit("tex_PBRInfo", texs1, 1);
+      standardDeferred.bindTexToUnit("tex_Emissive", texs2, 2);
+      standardDeferred.bindTexToUnit("tex_Nor", texs3, 3);
+
+      renderer.renderToGBuffer(camera, standardDeferred, [mesh1, mesh1], [sideSRT, sideSRT2]);
+
       renderer.renderFromGBuffer(camera);
       renderer.renderPostProcessHDR();
 

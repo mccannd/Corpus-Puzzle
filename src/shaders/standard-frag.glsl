@@ -41,8 +41,6 @@ void main() {
 
     // inverse gamma correct
     col = pow(col, vec3(2.2));
-    pbr = pow(pbr, vec4(2.2));
-    nor = pow(nor, vec3(2.2));
 
     vec3 norN = abs(dot(nor, vec3(1))) > 0.0 ? applyNormalMap(normalize(fs_Nor.xyz), nor) : normalize(fs_Nor.xyz);
 

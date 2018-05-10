@@ -79,9 +79,11 @@ vec3 PBRDiffuse(in vec3 diffuse) {
 
 vec3 environmentHack(in vec3 refl, in vec3 nor, in float rough, in float ndv, in vec3 spec, in vec3 diff) {
 
-	vec3 vup = (u_View * vec4(0, 0, 1, 0)).xyz;
+	vec3 vup = (u_View * vec4(0, 1, 0, 0)).xyz;
 	vec3 vri = (u_View * vec4(1, 0, 0, 0)).xyz;
 
+	if (isinf(ndv)) return vec3(0, 0, 1);
+	//return vec3(0);
 	vec2 brdf = texture(tex_BRDF, vec2(ndv, 1.0 - rough)).rg;
 
 	//return vec3(brdf, 0.0);
@@ -92,7 +94,7 @@ vec3 environmentHack(in vec3 refl, in vec3 nor, in float rough, in float ndv, in
 
 	vec3 env = texture(tex_env, uv0, rough * 12.0).xyz;
 
-	env = -log(vec3(1.0) - min(vec3(0.999), env));
+	//env = -log(vec3(1.0) - min(vec3(0.999), env));
 	env *= (spec * brdf.x + brdf.y);
 
 	//vec3 env2 = texture(tex_env, uv1, 12.0).xyz;
@@ -105,11 +107,11 @@ vec3 environmentHack(in vec3 refl, in vec3 nor, in float rough, in float ndv, in
 vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 	vec3 V = -normalize(P);
 	N = faceforward(N, V, -N);
-	if (dot(N, V) < 0.01) return color / PI; // eh
+	//if (dot(N, V) < 0.01) return color / PI; // eh
 	float roughness = rough;
 	roughness = clamp(roughness, 0.03, 1.0);
 	float metallic = metal;
-	vec3 f0 = vec3(0.04);
+	vec3 f0 = vec3(0.06);
 	vec3 diffuse = mix(color * (1.0 - f0), vec3(0.0), metallic);
 	vec3 specular = mix(f0, color, metallic);
 	float NdotV = max(EPS, dot(N, V));
@@ -123,10 +125,10 @@ vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 
 	vec3 lightPos[2];
 	lightPos[0] = (u_View * vec4(0.0, 0.0, 0.0, 1)).xyz;
-	lightPos[1] = (u_View * vec4(-3.0, -3.0, -1.0, 1)).xyz;
+	lightPos[1] = (u_View * vec4(-3.0, -4.0, 0.0, 1)).xyz;
 
 	vec3 lightCol[2];
-	lightCol[0] = 24.0 * vec3(0.2, 1.0, 0.8);
+	lightCol[0] = 32.0 * vec3(0.2, 1.0, 0.8);
 	lightCol[1] = 32.0 * vec3(1.0, 0.05, 0.05) * smoothstep(0.0, 1.0, (0.5 + 0.5 * cos(3.14 * u_Time)));
 
 	vec3 accumCol = vec3(0.0);
@@ -151,14 +153,15 @@ vec3 PBRColor(float rough, float metal, vec3 color, vec3 N, vec3 P) {
 	float specCol = PBRSpec(roughness, N, L, V);
 	specCol *= step(0.01, dot(N, L));
 	vec3 finalCol = (vec3(1.0) - F) * (diffuseCol) + F * specCol;
-	finalCol *= 0.5 * vec3(1.0, 0.9, 0.8) * max(0.0, dot(N, L));
+	finalCol *= 1.0 * vec3(1.0, 0.9, 0.8) * max(0.0, dot(N, L));
 	accumCol += finalCol;
 
 	vec3 refl = normalize(reflect(-V, N));
+	//refl.y *= -1.0;
 	vec3 envLighting = environmentHack(refl, N, rough, abs(dot(N, V)), specular, diffuse);
 
-	accumCol += 0.5 * envLighting;
-
+	accumCol += 0.1 * envLighting;
+	//accumCol = 0.5 * refl + 0.5;
 
 	return accumCol;
 }
@@ -194,10 +197,6 @@ void main() {
 	vec3 color = (dot(vec3(1.0), abs(P)) < EPS) ? vec3(0): PBRColor(rough, metal, col, N, P);
 
 	color = mix(color, vec3(0), 1.0 - occ) + emissive;
-	//color = 0.5 + 0.5 * refl;
-	//color = 0.5 * N + 0.5;
-	//color = mix(color, vec3(0), 0.5); // for this game, want to see the puzzle...
-	color = min(color, vec3(4.0));
+	color = min(color, vec3(5.0));
 	out_Col = vec4(color, 1.0);
-	//out_Col = gb3;
 }
